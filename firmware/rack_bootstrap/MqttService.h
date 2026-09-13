@@ -17,6 +17,7 @@ struct Config {
 };
 struct Incoming { unsigned generation; uint16_t size; bool request; char data[MAX_PAYLOAD+1]; };
 struct Outgoing { char suffix[32]; char data[1536]; bool retain=false; };
+static Incoming *assemblyBuffer=nullptr,*incomingBuffer=nullptr;
 static Config config;
 static Preferences storage;
 static QueueHandle_t configQueue=nullptr,rxQueue=nullptr,txQueue=nullptr;
@@ -47,7 +48,8 @@ inline void capabilities(const char *request=nullptr) {
 }
 inline void event(void *,esp_event_base_t,int32_t eventId,void *eventData) {
   auto e=(esp_mqtt_event_handle_t)eventData;
-  static Incoming assembling;static size_t filled=0;static bool valid=false;
+  if(!assemblyBuffer)return;
+  Incoming &assembling=*assemblyBuffer;static size_t filled=0;static bool valid=false;
   if(eventId==MQTT_EVENT_CONNECTED) {
     connected=true;transportError=0;retryDelay=2000;++connects;filled=0;valid=false;
     char topic[128];snprintf(topic,sizeof(topic),"%s/snapshot",base);esp_mqtt_client_subscribe(e->client,topic,0);
@@ -114,6 +116,9 @@ inline bool begin(const String &id,const char *version) {
   if(storage.getBytesLength("config")==sizeof(saved)&&storage.getBytes("config",&saved,sizeof(saved))==sizeof(saved)&&saved.magic==config.magic)config=saved;
   config.host[128]=config.user[96]=config.password[128]=config.ca[2048]=config.key[32]=0;
   if(strlen(config.key)!=32){randomHex(config.key);if(storage.putBytes("config",&config,sizeof(config))!=sizeof(config))return false;}
+  auto allocateIncoming=[](){void *p=heap_caps_malloc(sizeof(Incoming),MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT);if(!p)p=heap_caps_malloc(sizeof(Incoming),MALLOC_CAP_INTERNAL|MALLOC_CAP_8BIT);if(p)memset(p,0,sizeof(Incoming));return (Incoming*)p;};
+  assemblyBuffer=allocateIncoming();incomingBuffer=allocateIncoming();
+  if(!assemblyBuffer||!incomingBuffer)return false;
   configQueue=xQueueCreate(1,sizeof(Config));
   // Queue control stays internal; its 46 KB payload buffer can live in WROVER
   // PSRAM. This leaves internal RAM available for mbedTLS certificate handling.
@@ -127,9 +132,9 @@ inline bool begin(const String &id,const char *version) {
 }
 inline String updateStatus(){cJSON *j=cJSON_Parse(RackUpdate::status().c_str());if(!j)return "{}";cJSON_AddNumberToObject(j,"schema",1);cJSON_AddStringToObject(j,"device_id",deviceId);cJSON_AddStringToObject(j,"session",session);return printJson(j);}
 inline void tick() {
-  if(!rxQueue)return;
+  if(!rxQueue||!incomingBuffer)return;
   if(connects.load()!=seenConnects){seenConnects=connects.load();randomHex(session);lastRequest[0]=0;sequence=0;dirty=true;capabilities();}
-  static Incoming incoming;
+  Incoming &incoming=*incomingBuffer;
   if(config.enabled&&xQueueReceive(rxQueue,&incoming,0)==pdTRUE&&incoming.generation==seenConnects&&connected) {
     cJSON *root=parse(incoming.data,incoming.size);char key[33];
     if(!root||!textField(root,"key",key,sizeof(key))||strcmp(config.key,key)) {++rejected;strlcpy(lastError,"invalid_or_unauthorized",sizeof(lastError));if(root)cJSON_Delete(root);return;}

@@ -1,5 +1,6 @@
 #pragma once
 #include <atomic>
+#include <esp_heap_caps.h>
 #include <time.h>
 #include <Preferences.h>
 #include <esp_http_client.h>
@@ -182,7 +183,7 @@ inline void tick(bool localHealthy,bool connected) {
 }
 inline String status() {
   cJSON *j=cJSON_CreateObject();
-  cJSON_AddNumberToObject(j,"http_status",httpCode);cJSON_AddNumberToObject(j,"transport_error",transportCode);cJSON_AddNumberToObject(j,"tls_error",tlsCode);cJSON_AddNumberToObject(j,"tls_flags",tlsFlags);
+  cJSON_AddNumberToObject(j,"epoch",(double)time(nullptr));cJSON_AddNumberToObject(j,"largest_internal_block",heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL|MALLOC_CAP_8BIT));cJSON_AddNumberToObject(j,"http_status",httpCode);cJSON_AddNumberToObject(j,"transport_error",transportCode);cJSON_AddNumberToObject(j,"tls_error",tlsCode);cJSON_AddNumberToObject(j,"tls_flags",tlsFlags);
   cJSON_AddStringToObject(j,"installed",installed);cJSON_AddBoolToObject(j,"web_enabled",webEnabled);cJSON_AddBoolToObject(j,"ha_enabled",haEnabled);cJSON_AddBoolToObject(j,"ha_managed",managed);cJSON_AddNumberToObject(j,"revision",settings.revision);cJSON_AddBoolToObject(j,"effective_enabled",permitted());cJSON_AddBoolToObject(j,"boot_confirmed",bootConfirmed);cJSON_AddBoolToObject(j,"busy",busy);
   if(mutex){xSemaphoreTake(mutex,portMAX_DELAY);cJSON_AddStringToObject(j,"available",available);cJSON_AddStringToObject(j,"phase",phase);cJSON_AddStringToObject(j,"error",error);xSemaphoreGive(mutex);}
   char *raw=cJSON_PrintUnformatted(j);String result=raw?raw:"{}";cJSON_free(raw);cJSON_Delete(j);return result;
