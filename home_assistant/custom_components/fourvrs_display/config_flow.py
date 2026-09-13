@@ -100,6 +100,6 @@ class DisplayOptionsFlow(config_entries.OptionsFlow):
             except ValueError:
                 errors["base"] = "invalid_selection"
             else:
-                return self.async_create_entry(title="", data=user_input)
+                return self.async_create_entry(title="", data={**self.config_entry.options, **user_input})
         current = self.config_entry.options.get("entities", self.config_entry.data["entities"])
         return self.async_show_form(step_id="init", data_schema=selection_schema(current), errors=errors)

@@ -65,13 +65,13 @@ def main():
     if result != 0:
         raise SystemExit('OTA transfer failed. Running firmware has not been verified.')
     # espota can return zero even for an ambiguous final reply; verify actual image and slot.
-    deadline = time.monotonic() + 60
+    deadline = time.monotonic() + 100
     while time.monotonic() < deadline:
         time.sleep(2)
         try:
             after = health()
             if (after.get('hostname') == before['hostname'] and after.get('sketch_md5') == digest
-                    and after.get('partition') != before.get('partition') and after.get('ota')):
+                    and after.get('partition') != before.get('partition') and after.get('ota') and after.get('boot_confirmed', True)):
                 print('Verified: image MD5, device identity, changed OTA slot, and OTA service after reboot.')
                 return
         except (OSError, ValueError):

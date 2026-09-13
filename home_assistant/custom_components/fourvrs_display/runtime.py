@@ -26,6 +26,8 @@ class DisplayRuntime:
         self.presentation_supported = False
         self.areas_supported = False
         self.area_icons_supported = False
+        self.update_supported = False
+        self.update_status = {}
         self.seq = self.ack_seq = 0
         self.last_ack = self.last_hello = 0.0
         self.waiting_since = time.monotonic()
@@ -46,6 +48,7 @@ class DisplayRuntime:
         try:
             self.unsubs.append(await mqtt.async_subscribe(self.hass, self.base + "/capabilities", self.capabilities, qos=0))
             self.unsubs.append(await mqtt.async_subscribe(self.hass, self.base + "/ack", self.ack, qos=0))
+            self.unsubs.append(await mqtt.async_subscribe(self.hass, self.base + "/update/status", self.receive_update_status, qos=0))
             self.unsubs.append(await mqtt.async_subscribe(self.hass, self.base + "/availability", self.availability, qos=0))
             self.unsubs.append(async_track_state_change_event(self.hass, self.entities, self.state_changed))
             self.unsubs.append(async_track_time_interval(self.hass, self.heartbeat, timedelta(seconds=30)))
@@ -69,6 +72,7 @@ class DisplayRuntime:
             return
         if caps.get("request_id") == self.request_id:
             if caps["session"] != self.session:
+                self.update_status = {}
                 self.session = caps["session"]
                 self.seq = self.ack_seq = 0
                 self.last_ack = 0.0
@@ -77,7 +81,9 @@ class DisplayRuntime:
             self.presentation_supported = caps.get("presentation_v") == 1
             self.areas_supported = caps.get("area_v") == 1 and type(caps.get("max_payload")) is int and caps["max_payload"] >= 15360
             self.area_icons_supported = self.areas_supported and caps.get("area_icon_v") == 1
+            self.update_supported = caps.get("update_v") == 1
             self.firmware = caps.get("firmware")
+            await self.publish_policy()
             await self.publish()
         elif caps["session"] != self.session and time.monotonic() - self.last_hello > 2:
             await self.hello()
@@ -119,6 +125,7 @@ class DisplayRuntime:
         await self.publish()
 
     async def heartbeat(self, _):
+        await self.publish_policy()
         if self.closed:
             return
         if not self.session or self.status in ("offline", "waiting"):
@@ -128,6 +135,24 @@ class DisplayRuntime:
                 self.status = "stale"
                 self.changed()
             await self.publish()
+
+    @callback
+    def receive_update_status(self, message):
+        if self.closed or not isinstance(message.payload,str) or len(message.payload)>2048:
+            return
+        try:
+            data=json.loads(message.payload)
+        except ValueError:
+            return
+        if isinstance(data,dict) and self.session and data.get("schema")==1 and data.get("device_id")==self.device_id and data.get("session")==self.session and type(data.get("ha_enabled")) is bool and type(data.get("revision")) is int and 0<=data["revision"]<=0x7fffffff:
+            self.update_status=data
+            self.changed()
+
+    async def publish_policy(self):
+        if self.closed or not self.session or not self.update_supported or not mqtt.is_connected(self.hass):
+            return
+        message={"schema":1,"key":self.key,"session":self.session,"request":"update_policy","enabled":self.entry.options.get("auto_update_enabled",True),"revision":self.entry.options.get("update_policy_rev",0)}
+        await mqtt.async_publish(self.hass,self.base+"/request",json.dumps(message),qos=0,retain=False)
 
     async def publish(self):
         async with self.lock:

@@ -4,11 +4,12 @@
 #include <Preferences.h>
 #include <ArduinoOTA.h>
 #include <esp_ota_ops.h>
-#include "LocalSecrets.h"
+#include "DeviceCredentials.h"
 #include "DemoImage.h"
 #include "SetupPage.h"
 #include "BacklightTest.h"
 #include "DisplayDemo.h"
+#include "UpdateService.h"
 #include "MqttService.h"
 #include "WebSettings.h"
 #include "WebLanguage.h"
@@ -16,14 +17,18 @@
 #include "MqttDisplay.h"
 #include "MqttPage.h"
 #include "WebPages.h"
+#include "UpdatePage.h"
 
 
 // Portrait ILI9341 demo with constant backlight and preserved Wi-Fi/OTA.
-static constexpr char VERSION[] = "0.3.3-room-covers";
+#ifndef FOURVRS_VERSION
+#define FOURVRS_VERSION 0.4.0
+#endif
+#define FOURVRS_STRING_INNER(x) #x
+#define FOURVRS_STRING(x) FOURVRS_STRING_INNER(x)
+static constexpr char VERSION[] = FOURVRS_STRING(FOURVRS_VERSION);
+extern "C" bool verifyRollbackLater(){return true;}
 static constexpr uint32_t RETRY_MS = 30000, FALLBACK_MS = 60000;
-static_assert(sizeof(SETUP_PASSWORD) >= 13 && sizeof(SETUP_PASSWORD) <= 64,
-              "Use a setup password of 12..63 ASCII characters");
-static_assert(sizeof(OTA_PASSWORD) >= 17, "Use an OTA password of at least 16 characters");
 StableWebServer web(80);
 Preferences prefs;
 String hostname, ssid, password, pendingSsid, pendingPassword;
@@ -82,7 +87,7 @@ void startPortal() {
   traceBoot("AP: before mode AP_STA");
   WiFi.mode(WIFI_AP_STA);
   traceBoot("AP: before softAP config");
-  apActive = WiFi.softAP((hostname + "-setup").c_str(), SETUP_PASSWORD);
+  apActive = WiFi.softAP((hostname + "-setup").c_str(), DeviceCredentials::config.setup);
   traceBoot(apActive ? "AP: config OK" : "AP: config FAILED");
   if (apActive) Serial.printf("Setup AP: %s-setup, http://%s\n", hostname.c_str(), WiFi.softAPIP().toString().c_str());
 }
@@ -101,6 +106,8 @@ bool mqttAdmin() {
   web.requestWebAuthentication();return false;
 }
 void configureWeb() {
+  const char *headers[] = {"X-CSRF-Token"};
+  web.collectHeaders(headers, 1);
   WebSettings::begin();
   web.on("/settings",HTTP_GET,[](){
     if(!mqttAdmin())return;
@@ -149,6 +156,24 @@ void configureWeb() {
   });
 
 
+  web.on("/updates",HTTP_GET,[](){
+    if(!mqttAdmin())return;String page=FPSTR(UPDATE_PAGE);
+    page.replace("__TOKEN__",formToken);page.replace("__TITLE__",WebSettings::label("Обновления","Updates"));
+    page.replace("__ENABLED__",WebSettings::label("Разрешить автообновление","Allow automatic updates"));page.replace("__SAVE__",WebSettings::label("Сохранить","Save"));page.replace("__CHECK__",WebSettings::label("Проверить сейчас","Check now"));
+    page.replace("__NOTE__",WebSettings::label("При разрешённых обновлениях новая версия установится автоматически. Блокировка HA также учитывается.","When updates are allowed, a new version installs automatically. The Home Assistant block also applies."));
+    web.sendHeader("Cache-Control","no-store");web.send(200,"text/html; charset=utf-8",page);
+  });
+  web.on("/updates/status",HTTP_GET,[](){if(!mqttAdmin())return;web.sendHeader("Cache-Control","no-store");web.send(200,"application/json",RackUpdate::status());});
+  web.on("/updates/action",HTTP_POST,[](){
+    if(!mqttAdmin())return;
+    if(web.header("X-CSRF-Token")!=formToken){web.send(403,"text/plain","Reload updates page");return;}
+    String body=web.arg("plain");cJSON *j=RackMqtt::parse(body.c_str(),body.length());bool ok=false;
+    if(j){cJSON *enabled=cJSON_GetObjectItemCaseSensitive(j,"enabled"),*check=cJSON_GetObjectItemCaseSensitive(j,"check");
+      if(cJSON_IsBool(enabled))ok=RackUpdate::localPolicy(cJSON_IsTrue(enabled));
+      else if(cJSON_IsTrue(check)){RackUpdate::checkRequested=true;ok=true;}cJSON_Delete(j);
+    }
+    web.send(ok?200:400,"application/json",RackUpdate::status());
+  });
   web.on("/display/pages",HTTP_GET,[](){
     if(!mqttAdmin())return;
     web.sendHeader("Cache-Control","no-store");
@@ -216,6 +241,7 @@ void configureWeb() {
       ",\"ap\":"+(radioApEnabled()?"true":"false")+",\"wifi_mode\":"+String(int(WiFi.getMode()))+",\"rssi\":"+String(WiFi.RSSI())+",\"disconnect_reason\":"+String(disconnectReason)+
       ",\"free_heap\":" + String(ESP.getFreeHeap()) + ",\"flash_bytes\":" + String(ESP.getFlashChipSize()) +
       ",\"sketch_md5\":\"" + ESP.getSketchMD5() + "\"" +
+      ",\"boot_confirmed\":"+String(RackUpdate::bootConfirmed?"true":"false")+",\"psram_bytes\":"+String(ESP.getPsramSize())+",\"credentials_persisted\":true"+
       ",\"partition\":\"" + (running ? running->label : "unknown") + "\"}";
     web.sendHeader("Cache-Control", "no-store");
     web.send(200, "application/json", body);
@@ -227,7 +253,7 @@ void configureWeb() {
 void configureOta() {
   ArduinoOTA.setHostname(hostname.c_str());
   ArduinoOTA.setPort(3232);
-  ArduinoOTA.setPassword(OTA_PASSWORD);
+  ArduinoOTA.setPassword(DeviceCredentials::config.ota);
   ArduinoOTA.setTimeout(10000);
   ArduinoOTA.onStart([]() { Serial.println("OTA started"); });
   ArduinoOTA.onEnd([]() { Serial.println("OTA complete; restarting"); });
@@ -240,10 +266,12 @@ void configureOta() {
 
 void setup() {
   Serial.begin(115200);
+  if(!DeviceCredentials::begin()){Serial.println("Credential storage unavailable");delay(10000);ESP.restart();}
   uint64_t mac = ESP.getEfuseMac();
   char suffix[13];
   snprintf(suffix, sizeof(suffix), "%04x%08lx", unsigned(mac >> 32), (unsigned long)(mac & 0xffffffff));
   hostname = String("4vrs-rack-") + suffix;
+  if(!RackUpdate::begin(VERSION))Serial.println("Auto-update initialization failed; manual OTA remains available");
   char token[33];
   snprintf(token, sizeof(token), "%08lx%08lx%08lx%08lx", (unsigned long)esp_random(), (unsigned long)esp_random(), (unsigned long)esp_random(), (unsigned long)esp_random());
   formToken = token;
@@ -284,6 +312,7 @@ void setup() {
   WiFi.setAutoReconnect(false); // Повторными попытками управляет только loop().
   traceBoot("WiFi: before setSleep(false)");
   WiFi.setSleep(false);
+  configTime(0,0,"pool.ntp.org","time.google.com");
   traceBoot("OTA: before configuration");
   configureOta();
   traceBoot("Network: before AP/STA connect");
@@ -350,7 +379,8 @@ void loop() {
       apActive=radioApEnabled();
       Serial.printf("[wifi] stop AP: result=%d, mode=%d\n",stopped,int(WiFi.getMode()));
     }
-    ArduinoOTA.handle();
+    if(!RackUpdate::flashGate)ArduinoOTA.handle();
+    else if(xSemaphoreTake(RackUpdate::flashGate,0)==pdTRUE){ArduinoOTA.handle();xSemaphoreGive(RackUpdate::flashGate);}
   } else {
     if (connectedBefore) {
       connectedBefore = false; outageSince = lastAttempt = now;
@@ -364,6 +394,8 @@ void loop() {
     }
   }
   RackMqtt::tick();
-  updateMqttDisplay();
+  if(RackUpdate::busy){if(mqttCanvas){delete mqttCanvas;mqttCanvas=nullptr;}mqttShowing=false;mqttPaintRow=320;RackUpdate::canvasReleased=true;}
+  else updateMqttDisplay();
+  RackUpdate::tick(WebSettings::ready&&displayStarted&&RackMqtt::rxQueue,connected);
   delay(2);
 }

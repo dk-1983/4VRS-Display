@@ -1,7 +1,7 @@
 {
   "domain": "fourvrs_display",
   "name": "4VRS Display",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "codeowners": [
     "@dk-1983"
   ],

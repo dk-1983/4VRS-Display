@@ -39,7 +39,7 @@ inline void send(const char *suffix,const String &body,bool retain=false) {
 inline void capabilities(const char *request=nullptr) {
   cJSON *j=cJSON_CreateObject();cJSON_AddNumberToObject(j,"schema",1);cJSON_AddStringToObject(j,"device_id",deviceId);
   cJSON_AddStringToObject(j,"session",session);cJSON_AddStringToObject(j,"firmware",firmwareVersion);
-  cJSON_AddNumberToObject(j,"presentation_v",1);cJSON_AddNumberToObject(j,"area_v",1);cJSON_AddNumberToObject(j,"area_icon_v",1);cJSON_AddNumberToObject(j,"max_cards",MAX_CARDS);cJSON_AddNumberToObject(j,"max_payload",MAX_PAYLOAD);
+  cJSON_AddNumberToObject(j,"presentation_v",1);cJSON_AddNumberToObject(j,"area_v",1);cJSON_AddNumberToObject(j,"area_icon_v",1);cJSON_AddNumberToObject(j,"update_v",1);cJSON_AddNumberToObject(j,"max_cards",MAX_CARDS);cJSON_AddNumberToObject(j,"max_payload",MAX_PAYLOAD);
   cJSON_AddNumberToObject(j,"width",240);cJSON_AddNumberToObject(j,"height",320);
   if(request)cJSON_AddStringToObject(j,"request_id",request);
   send("/capabilities",printJson(j));lastAnnounce=millis();
@@ -118,6 +118,7 @@ inline bool begin(const String &id,const char *version) {
   if(xTaskCreate(worker,"rack-mqtt-control",8192,nullptr,1,nullptr)!=pdPASS)return false;
   randomHex(session);if(config.tls)configTime(0,0,"pool.ntp.org","time.google.com");xQueueOverwrite(configQueue,&config);return true;
 }
+inline String updateStatus(){cJSON *j=cJSON_Parse(RackUpdate::status().c_str());if(!j)return "{}";cJSON_AddNumberToObject(j,"schema",1);cJSON_AddStringToObject(j,"device_id",deviceId);cJSON_AddStringToObject(j,"session",session);return printJson(j);}
 inline void tick() {
   if(!rxQueue)return;
   if(connects.load()!=seenConnects){seenConnects=connects.load();randomHex(session);lastRequest[0]=0;sequence=0;dirty=true;capabilities();}
@@ -126,6 +127,16 @@ inline void tick() {
     cJSON *root=parse(incoming.data,incoming.size);char key[33];
     if(!root||!textField(root,"key",key,sizeof(key))||strcmp(config.key,key)) {++rejected;strlcpy(lastError,"invalid_or_unauthorized",sizeof(lastError));if(root)cJSON_Delete(root);return;}
     if(incoming.request) {
+      const cJSON *action=cJSON_GetObjectItemCaseSensitive(root,"request");
+      if(cJSON_IsString(action)&&!strcmp(action->valuestring,"update_policy")) {
+        uint32_t revision,policySchema;char policySession[33];const cJSON *enabled=cJSON_GetObjectItemCaseSensitive(root,"enabled");
+        if(numberField(root,"schema",policySchema,1,1)&&RackMqtt::textField(root,"session",policySession,sizeof(policySession))&&!strcmp(policySession,session)&&cJSON_IsBool(enabled)&&RackMqtt::numberField(root,"revision",revision,0,0x7fffffff)) {
+          const char *policyError=RackUpdate::haPolicy(cJSON_IsTrue(enabled),revision);
+          if(policyError)strlcpy(lastError,policyError,sizeof(lastError));
+          send("/update/status",updateStatus());
+        }
+        cJSON_Delete(root);return;
+      }
       uint32_t schema;char request[16],requestId[65];const char *const keys[]={"schema","key","request","request_id"};
       if(allowedKeys(root,keys,4)&&numberField(root,"schema",schema,1,1)&&textField(root,"request",request,sizeof(request))&&!strcmp(request,"hello")&&textField(root,"request_id",requestId,sizeof(requestId))) {
         if(strcmp(lastRequest,requestId)){strlcpy(lastRequest,requestId,sizeof(lastRequest));randomHex(session);sequence=0;}
@@ -142,6 +153,7 @@ inline void tick() {
     cJSON_Delete(root);
   }
   if(connected&&uint32_t(millis()-lastAnnounce)>30000)capabilities();
+  static uint32_t updateSeen=0;if(connected&&updateSeen!=RackUpdate::changes){updateSeen=RackUpdate::changes;send("/update/status",updateStatus());}
 }
 inline String status() {
   cJSON *j=cJSON_CreateObject();cJSON_AddBoolToObject(j,"enabled",config.enabled);cJSON_AddBoolToObject(j,"connected",connected);

@@ -129,5 +129,22 @@ class RuntimeTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.runtime.status, 'stale')
 
 
-if __name__ == '__main__':
-    unittest.main()
+
+    async def test_update_policy_and_session_bound_confirmation(self):
+        self.runtime.entry.options = {"auto_update_enabled":False,"update_policy_rev":7}
+        caps = {"schema":1,"device_id":"test","session":"a"*32,"max_cards":20,
+                "request_id":self.runtime.request_id,"update_v":1}
+        await self.runtime.capabilities(types.SimpleNamespace(payload=json.dumps(caps)))
+        policy = [item for item in self.sent if item[1].get("request")=="update_policy"][-1]
+        self.assertFalse(policy[1]["enabled"])
+        self.assertEqual(policy[1]["revision"],7)
+        self.assertFalse(policy[2]["retain"])
+        status={"schema":1,"device_id":"test","session":"b"*32,"ha_enabled":True,"revision":8}
+        self.runtime.receive_update_status(types.SimpleNamespace(payload=json.dumps(status)))
+        self.assertEqual(self.runtime.update_status,{})
+        status.update(session="a"*32,ha_enabled=False,revision=7)
+        self.runtime.receive_update_status(types.SimpleNamespace(payload=json.dumps(status)))
+        self.assertFalse(self.runtime.update_status["ha_enabled"])
+        caps["session"]="c"*32
+        await self.runtime.capabilities(types.SimpleNamespace(payload=json.dumps(caps)))
+        self.assertEqual(self.runtime.update_status,{})
