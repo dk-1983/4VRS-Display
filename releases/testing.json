@@ -1,0 +1,4 @@
+{
+  "payload": "{\"channel\":\"stable\",\"profile\":\"nadim-v5-ili9341-4m-v1\",\"schema\":1,\"sha256\":\"546931ced200b14c31a747a0c6adf77017041121d88091a38b1484bff7cd09c0\",\"size\":1514304,\"url\":\"https://github.com/dk-1983/4VRS-Display/releases/download/firmware-v0.4.2/4vrs-display-0.4.2.bin\",\"version\":\"0.4.2\"}",
+  "signature": "3045022039e7ac7cabf32b38311d425377aa957e592150c483a8182abdc97cef1b73a598022100e35e10eb0787723b7e9d4d6edf9955cda7586937603fbc8c5f89f808691a575c"
+}
