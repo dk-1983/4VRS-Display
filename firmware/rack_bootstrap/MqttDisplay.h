@@ -58,7 +58,13 @@ static void renderMqttBand(unsigned band,bool stale) {
     else if(on)color=ILI9341_GREEN;
     if(card.alert)color=ILI9341_RED;
     if(stale||unavailable||unknown)color=ILI9341_DARKGREY;
-    drawLabel(c,card.name,8,6,ILI9341_WHITE);
+    if(card.hasArea) {
+      const char *area=card.area[0]?card.area:WebSettings::label("БЕЗ ПОМЕЩЕНИЯ","UNASSIGNED");
+      drawLabel(c,area,8,4,ILI9341_CYAN);
+      unsigned index=mqttFramePage+band-1;
+      if(!index||strcmp(card.area,mqttPaintSnapshot.cards[index-1].area))c.drawFastHLine(0,0,240,ILI9341_CYAN);
+    }
+    drawLabel(c,card.name,8,card.hasArea?16:6,ILI9341_WHITE);
     drawCardIcon(c,icon,color,on,unavailable||unknown,stale);
     const char *state=unavailable?WebSettings::label("НЕДОСТУПНО","UNAVAILABLE"):unknown?WebSettings::label("НЕИЗВЕСТНО","UNKNOWN"):card.state;
     drawLabel(c,state,47,31,color,strlen(state)<15?2:1);

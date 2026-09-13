@@ -9,6 +9,7 @@ from homeassistant.components import mqtt
 from homeassistant.core import callback
 from homeassistant.helpers.event import async_call_later, async_track_state_change_event, async_track_time_interval
 
+from .areas import resolve_areas
 from .presentation import presentation
 from .payload import decode_capabilities, encode_snapshot, validate_selection
 
@@ -22,6 +23,7 @@ class DisplayRuntime:
         self.base = f"4vrs/display/{self.device_id}"
         self.session = None
         self.presentation_supported = False
+        self.areas_supported = False
         self.seq = self.ack_seq = 0
         self.last_ack = self.last_hello = 0.0
         self.waiting_since = time.monotonic()
@@ -71,6 +73,7 @@ class DisplayRuntime:
                 self.waiting_since = time.monotonic()
                 self.status = "sending"
             self.presentation_supported = caps.get("presentation_v") == 1
+            self.areas_supported = caps.get("area_v") == 1 and type(caps.get("max_payload")) is int and caps["max_payload"] >= 9216
             self.firmware = caps.get("firmware")
             await self.publish()
         elif caps["session"] != self.session and time.monotonic() - self.last_hello > 2:
@@ -133,7 +136,7 @@ class DisplayRuntime:
                 await self.hello()
                 return
             self.seq += 1
-            payload = encode_snapshot(self.session, self.key, self.seq, self.entities, self.hass.states.get, presenter=presentation if self.presentation_supported else None)
+            payload = encode_snapshot(self.session, self.key, self.seq, self.entities, self.hass.states.get, presenter=presentation if self.presentation_supported else None, areas=resolve_areas(self.hass, self.entities) if self.areas_supported else None)
             await mqtt.async_publish(self.hass, self.base + "/snapshot", payload, qos=0, retain=False)
             self.changed()
 

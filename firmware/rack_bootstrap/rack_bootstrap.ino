@@ -19,7 +19,7 @@
 
 
 // Portrait ILI9341 demo with constant backlight and preserved Wi-Fi/OTA.
-static constexpr char VERSION[] = "0.3.0-entities";
+static constexpr char VERSION[] = "0.3.1-areas";
 static constexpr uint32_t RETRY_MS = 30000, FALLBACK_MS = 60000;
 static_assert(sizeof(SETUP_PASSWORD) >= 13 && sizeof(SETUP_PASSWORD) <= 64,
               "Use a setup password of 12..63 ASCII characters");

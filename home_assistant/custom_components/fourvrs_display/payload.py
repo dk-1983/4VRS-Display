@@ -3,7 +3,7 @@ import json
 import re
 
 MAX_CARDS = 12
-MAX_PAYLOAD = 8192
+MAX_PAYLOAD = 9216
 KINDS = {"fan", "light", "valve", "sensor", "binary_sensor", "switch"}
 
 
@@ -24,13 +24,20 @@ def text(value, limit, default=""):
     return value.encode("utf-8", errors="replace")[:limit].decode("utf-8", errors="ignore") or default
 
 
-def encode_snapshot(session, key, seq, entities, lookup, presenter=None):
+def encode_snapshot(session, key, seq, entities, lookup, presenter=None, areas=None):
     validate_selection(entities)
     if not all(isinstance(v, str) and re.fullmatch(r"[0-9a-f]{32}", v) for v in (session, key)):
         raise ValueError("Invalid session or pairing key")
     if type(seq) is not int or not 1 <= seq <= 0xFFFFFFFF:
         raise ValueError("Sequence out of range")
     cards = []
+    if areas is not None:
+        # Sort using full names/IDs, never the truncated labels sent to the TFT.
+        # Stable sorting preserves the user's selection order within each area.
+        def area_key(entity_id):
+            area_id, name = areas.get(entity_id, ("", ""))
+            return (not bool(area_id), name.casefold(), area_id)
+        entities = sorted(entities, key=area_key)
     for entity_id in entities:
         source = lookup(entity_id)
         attrs = source.attributes if source is not None else {}
@@ -42,6 +49,8 @@ def encode_snapshot(session, key, seq, entities, lookup, presenter=None):
             "state": text(source.state if source is not None else "unavailable", 96, "unknown"),
             "unit": text(attrs.get("unit_of_measurement"), 16),
         })
+        if areas is not None:
+            cards[-1]["area"] = text(areas.get(entity_id, ("", ""))[1], 48)
         if presenter is not None:
             cards[-1].update(presenter(entity_id, attrs, cards[-1]["state"]))
     message = {"schema": 1, "key": key, "session": session, "seq": seq, "ttl_s": 90, "cards": cards}

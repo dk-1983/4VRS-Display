@@ -39,7 +39,7 @@ inline void send(const char *suffix,const String &body,bool retain=false) {
 inline void capabilities(const char *request=nullptr) {
   cJSON *j=cJSON_CreateObject();cJSON_AddNumberToObject(j,"schema",1);cJSON_AddStringToObject(j,"device_id",deviceId);
   cJSON_AddStringToObject(j,"session",session);cJSON_AddStringToObject(j,"firmware",firmwareVersion);
-  cJSON_AddNumberToObject(j,"presentation_v",1);cJSON_AddNumberToObject(j,"max_cards",MAX_CARDS);cJSON_AddNumberToObject(j,"max_payload",MAX_PAYLOAD);
+  cJSON_AddNumberToObject(j,"presentation_v",1);cJSON_AddNumberToObject(j,"area_v",1);cJSON_AddNumberToObject(j,"max_cards",MAX_CARDS);cJSON_AddNumberToObject(j,"max_payload",MAX_PAYLOAD);
   cJSON_AddNumberToObject(j,"width",240);cJSON_AddNumberToObject(j,"height",320);
   if(request)cJSON_AddStringToObject(j,"request_id",request);
   send("/capabilities",printJson(j));lastAnnounce=millis();
@@ -149,7 +149,7 @@ inline String status() {
   cJSON_AddNumberToObject(j,"connections",connects);cJSON_AddNumberToObject(j,"transport_error",transportError);cJSON_AddStringToObject(j,"last_error",lastError);
   cJSON_AddNumberToObject(j,"seq",sequence);cJSON_AddBoolToObject(j,"has_snapshot",snapshot.valid);
   cJSON_AddBoolToObject(j,"stale",snapshot.valid&&uint32_t(millis()-snapshot.received)>snapshot.ttl*1000);
-  cJSON *cards=cJSON_AddArrayToObject(j,"cards");if(snapshot.valid)for(unsigned i=0;i<snapshot.count;i++){cJSON *c=cJSON_CreateObject();cJSON_AddStringToObject(c,"id",snapshot.cards[i].id);cJSON_AddStringToObject(c,"name",snapshot.cards[i].name);cJSON_AddStringToObject(c,"state",snapshot.cards[i].state);cJSON_AddStringToObject(c,"icon",cardIcon(snapshot.cards[i]));cJSON_AddItemToArray(cards,c);}
+  cJSON *cards=cJSON_AddArrayToObject(j,"cards");if(snapshot.valid)for(unsigned i=0;i<snapshot.count;i++){cJSON *c=cJSON_CreateObject();cJSON_AddStringToObject(c,"id",snapshot.cards[i].id);cJSON_AddStringToObject(c,"name",snapshot.cards[i].name);cJSON_AddStringToObject(c,"state",snapshot.cards[i].state);cJSON_AddStringToObject(c,"icon",cardIcon(snapshot.cards[i]));if(snapshot.cards[i].hasArea)cJSON_AddStringToObject(c,"area",snapshot.cards[i].area);cJSON_AddItemToArray(cards,c);}
   return printJson(j);
 }
 inline String publicConfig() {

@@ -4,9 +4,9 @@
 #include <math.h>
 
 namespace RackMqtt {
-constexpr size_t MAX_PAYLOAD = 8192;
+constexpr size_t MAX_PAYLOAD = 9216;
 constexpr unsigned MAX_CARDS = 12;
-struct Card { char id[97]{}, name[97]{}, kind[17]{}, state[97]{}, unit[17]{}, icon[17]{}; bool alert=false; };
+struct Card { char id[97]{}, name[97]{}, kind[17]{}, state[97]{}, unit[17]{}, icon[17]{}, area[49]{}; bool alert=false, hasArea=false; };
 struct Snapshot { Card cards[MAX_CARDS]; unsigned count=0; uint32_t seq=0, ttl=90, received=0; bool valid=false; };
 
 inline bool textField(const cJSON *obj, const char *key, char *out, size_t size, bool empty=false) {
@@ -72,10 +72,14 @@ inline const char *decodeSnapshot(const cJSON *root,const char *session,uint32_t
   if(!cJSON_IsArray(cards))return "cards";
   int count=cJSON_GetArraySize(cards);if(count<1||count>MAX_CARDS)return "card_count";
   for(int i=0;i<count;i++) {
-    const cJSON *v=cJSON_GetArrayItem(cards,i);const char *const ck[]={"id","name","kind","state","unit","icon","alert"};
-    if(!cJSON_IsObject(v)||!allowedKeys(v,ck,7))return "card";
+    const cJSON *v=cJSON_GetArrayItem(cards,i);const char *const ck[]={"id","name","kind","state","unit","icon","alert","area"};
+    if(!cJSON_IsObject(v)||!allowedKeys(v,ck,8))return "card";
     Card &c=next.cards[i];
     if(!textField(v,"id",c.id,sizeof(c.id))||!textField(v,"name",c.name,sizeof(c.name))||!textField(v,"kind",c.kind,sizeof(c.kind))||!textField(v,"state",c.state,sizeof(c.state))||!textField(v,"unit",c.unit,sizeof(c.unit),true))return "card_text";
+    if(cJSON_HasObjectItem(v,"area")) {
+      if(!textField(v,"area",c.area,sizeof(c.area),true))return "area";
+      c.hasArea=true;
+    }
     if(cJSON_HasObjectItem(v,"icon")) {
       if(!textField(v,"icon",c.icon,sizeof(c.icon)))return "icon";
       const char *icons[]={"air","battery","binary_sensor","button","camera","clock","door","event","fan","gas","group","humidity","image","leak","light","list","location","lock","media","money","motion","network","person","plug","power","pressure","remote","robot","ruler","sensor","settings","shield","smoke","sound","storage","sun","switch","temperature","text","update","valve","warning","water","weather","wind","window"};

@@ -135,6 +135,12 @@
           },
           "alert": {
             "type": "boolean"
+          },
+          "area": {
+            "type": "string",
+            "maxLength": 48,
+            "x-maxUtf8Bytes": 48,
+            "description": "Optional HA area name; empty means unassigned. Send only when area_v=1 and max_payload>=9216."
           }
         }
       }
