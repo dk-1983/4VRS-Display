@@ -1,6 +1,7 @@
 #pragma once
 #include <atomic>
 #include <mqtt_client.h>
+#include <esp_heap_caps.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
 #include <freertos/task.h>
@@ -113,7 +114,13 @@ inline bool begin(const String &id,const char *version) {
   if(storage.getBytesLength("config")==sizeof(saved)&&storage.getBytes("config",&saved,sizeof(saved))==sizeof(saved)&&saved.magic==config.magic)config=saved;
   config.host[128]=config.user[96]=config.password[128]=config.ca[2048]=config.key[32]=0;
   if(strlen(config.key)!=32){randomHex(config.key);if(storage.putBytes("config",&config,sizeof(config))!=sizeof(config))return false;}
-  configQueue=xQueueCreate(1,sizeof(Config));rxQueue=xQueueCreate(3,sizeof(Incoming));txQueue=xQueueCreate(4,sizeof(Outgoing));
+  configQueue=xQueueCreate(1,sizeof(Config));
+  // Queue control stays internal; its 46 KB payload buffer can live in WROVER
+  // PSRAM. This leaves internal RAM available for mbedTLS certificate handling.
+  static StaticQueue_t rxControl;
+  uint8_t *rxStorage=(uint8_t*)heap_caps_malloc(3*sizeof(Incoming),MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT);
+  rxQueue=rxStorage?xQueueCreateStatic(3,sizeof(Incoming),rxStorage,&rxControl):xQueueCreate(3,sizeof(Incoming));
+  txQueue=xQueueCreate(4,sizeof(Outgoing));
   if(!configQueue||!rxQueue||!txQueue)return false;
   if(xTaskCreate(worker,"rack-mqtt-control",8192,nullptr,1,nullptr)!=pdPASS)return false;
   randomHex(session);if(config.tls)configTime(0,0,"pool.ntp.org","time.google.com");xQueueOverwrite(configQueue,&config);return true;

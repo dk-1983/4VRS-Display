@@ -22,7 +22,7 @@
 
 // Portrait ILI9341 demo with constant backlight and preserved Wi-Fi/OTA.
 #ifndef FOURVRS_VERSION
-#define FOURVRS_VERSION 0.4.0
+#define FOURVRS_VERSION 0.4.1
 #endif
 #define FOURVRS_STRING_INNER(x) #x
 #define FOURVRS_STRING(x) FOURVRS_STRING_INNER(x)
@@ -114,6 +114,21 @@ void configureWeb() {
     String page=FPSTR(SETTINGS_PAGE);page.replace("__TOKEN__",formToken);
     web.sendHeader("Cache-Control","no-store");
     web.send(200,"text/html; charset=utf-8",localizeWeb(page));
+  });
+  web.on("/settings/ota",HTTP_GET,[](){
+    if(!mqttAdmin())return;
+    String page="<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><a href='/settings'>Settings</a><h1>ArduinoOTA</h1><form method=post><input type=hidden name=token value='"+formToken+"'><label>";
+    page+=WebSettings::label("Новый пароль OTA (16–64 символа ASCII)","New OTA password (16–64 ASCII characters)");
+    page+="<input type=password name=password minlength=16 maxlength=64 required autocomplete=new-password></label><button>";
+    page+=WebSettings::label("Сохранить","Save");page+="</button></form>";
+    web.sendHeader("Cache-Control","no-store");web.send(200,"text/html; charset=utf-8",page);
+  });
+  web.on("/settings/ota",HTTP_POST,[](){
+    if(!mqttAdmin())return;
+    if(web.arg("token")!=formToken){web.send(403,"text/plain","Reload settings page");return;}
+    if(!DeviceCredentials::setOta(web.arg("password"))){web.send(400,"text/plain","Use 16-64 printable ASCII characters without spaces");return;}
+    ArduinoOTA.setPassword(DeviceCredentials::config.ota);
+    web.sendHeader("Cache-Control","no-store");web.send(200,"text/plain; charset=utf-8",WebSettings::label("Пароль OTA сохранён","OTA password saved"));
   });
   web.on("/settings/config",HTTP_GET,[](){
     if(!mqttAdmin())return;

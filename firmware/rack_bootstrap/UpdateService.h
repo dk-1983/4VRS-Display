@@ -9,6 +9,7 @@
 #include <mbedtls/sha256.h>
 #include "MqttProtocol.h"
 #include "UpdateTrust.h"
+#include "UpdateCertificates.h"
 
 namespace RackUpdate {
 static constexpr char PROFILE[]="nadim-v5-ili9341-4m-v1";
@@ -21,6 +22,7 @@ static SemaphoreHandle_t mutex=nullptr,flashGate=nullptr,policyGate=nullptr;
 static std::atomic<bool> webEnabled{true},haEnabled{true},managed{false},busy{false},manual{false},canvasReleased{false},checkRequested{false},bootConfirmed{false},networkReady{false},restartRequested{false};
 static std::atomic<uint32_t> leaseUntil{0},changes{0};
 static char installed[24]{},available[24]{},phase[32]="starting",error[64]{},blockedHash[65]{};
+static std::atomic<int> httpCode{0},transportCode{0},tlsCode{0},tlsFlags{0};
 static uint32_t bootStart=0,healthySince=0;
 static bool pendingBoot=false,storageReady=false;
 
@@ -71,12 +73,14 @@ inline bool decode(const char *text,size_t size,Manifest &m) {
   cJSON_Delete(envelope);return ok;
 }
 inline esp_http_client_handle_t open(const char *url) {
-  esp_http_client_config_t c{};c.url=url;c.crt_bundle_attach=esp_crt_bundle_attach;c.timeout_ms=6000;c.buffer_size=1024;c.buffer_size_tx=512;c.disable_auto_redirect=true;c.user_agent="4VRS-Display/1";
+  esp_http_client_config_t c{};c.url=url;c.cert_pem=UPDATE_CA_CERTS;c.timeout_ms=6000;c.buffer_size=1024;c.buffer_size_tx=512;c.disable_auto_redirect=true;c.user_agent="4VRS-Display/1";
   auto h=esp_http_client_init(&c);if(!h)return nullptr;
   // Explicit HTTPS-only redirects. GitHub release assets redirect to its CDN.
   for(unsigned redirects=0;redirects<4;++redirects) {
-    if(esp_http_client_open(h,0)!=ESP_OK||esp_http_client_fetch_headers(h)<0)break;
-    int status=esp_http_client_get_status_code(h);
+    transportCode=esp_http_client_open(h,0);
+    if(transportCode!=ESP_OK){int code=0,flags=0;esp_http_client_get_and_clear_last_tls_error(h,&code,&flags);tlsCode=code;tlsFlags=flags;break;}
+    if(esp_http_client_fetch_headers(h)<0){transportCode=-1;break;}
+    int status=esp_http_client_get_status_code(h);httpCode=status;
     if(status==200)return h;
     if(status!=301&&status!=302&&status!=307&&status!=308)break;
     if(esp_http_client_set_redirection(h)!=ESP_OK)break;
@@ -178,6 +182,7 @@ inline void tick(bool localHealthy,bool connected) {
 }
 inline String status() {
   cJSON *j=cJSON_CreateObject();
+  cJSON_AddNumberToObject(j,"http_status",httpCode);cJSON_AddNumberToObject(j,"transport_error",transportCode);cJSON_AddNumberToObject(j,"tls_error",tlsCode);cJSON_AddNumberToObject(j,"tls_flags",tlsFlags);
   cJSON_AddStringToObject(j,"installed",installed);cJSON_AddBoolToObject(j,"web_enabled",webEnabled);cJSON_AddBoolToObject(j,"ha_enabled",haEnabled);cJSON_AddBoolToObject(j,"ha_managed",managed);cJSON_AddNumberToObject(j,"revision",settings.revision);cJSON_AddBoolToObject(j,"effective_enabled",permitted());cJSON_AddBoolToObject(j,"boot_confirmed",bootConfirmed);cJSON_AddBoolToObject(j,"busy",busy);
   if(mutex){xSemaphoreTake(mutex,portMAX_DELAY);cJSON_AddStringToObject(j,"available",available);cJSON_AddStringToObject(j,"phase",phase);cJSON_AddStringToObject(j,"error",error);xSemaphoreGive(mutex);}
   char *raw=cJSON_PrintUnformatted(j);String result=raw?raw:"{}";cJSON_free(raw);cJSON_Delete(j);return result;

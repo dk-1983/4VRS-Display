@@ -18,4 +18,12 @@ inline bool begin() {
 #endif
   return p.putBytes("config",&config,sizeof(config))==sizeof(config);
 }
+inline bool setOta(const String &password){
+  if(password.length()<16||password.length()>64)return false;
+  for(unsigned i=0;i<password.length();++i)if(password[i]<33||password[i]>126)return false;
+  Config next=config;strlcpy(next.ota,password.c_str(),sizeof(next.ota));
+  Preferences p;if(!p.begin("rack-keys",false)||p.putBytes("config",&next,sizeof(next))!=sizeof(next))return false;
+  config=next;return true;
+}
+
 }

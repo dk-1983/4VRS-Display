@@ -11,7 +11,7 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--cli',default='C:/Program Files/Arduino IDE/resources/app/lib/backend/resources/arduino-cli.exe')
     p.add_argument('--config',type=Path)
-    p.add_argument('--version',default='0.4.0')
+    p.add_argument('--version',default='0.4.1')
     p.add_argument('--output',type=Path,default=ROOT/'build/firmware')
     p.add_argument('--migrate-credentials',action='store_true',help='PRIVATE one-time migration; never publish this binary')
     p.add_argument('--test-fail-boot',action='store_true',help='PRIVATE rollback test; never publish this binary')
@@ -27,9 +27,13 @@ def main():
     if a.migrate_credentials:flags+=' -DFOURVRS_MIGRATE_CREDENTIALS=1'
     if a.test_fail_boot:flags+=' -DFOURVRS_TEST_FAIL_BOOT=1'
     cmd=base+['compile','--fqbn',FQBN,'--warnings','all','--build-property','compiler.cpp.extra_flags='+flags,'--build-path',str(build),str(ROOT/'firmware/rack_bootstrap')]
-    with (build/'compile.log').open('w',encoding='utf-8') as log:
+    log_path=build.parent/(build.name+'.compile.log')
+    with log_path.open('w',encoding='utf-8') as log:
         result=subprocess.run(cmd,stdout=log,stderr=subprocess.STDOUT,env={**os.environ,'TMP':str(tmp),'TEMP':str(tmp)})
-    print((build/'compile.log').read_text(encoding='utf-8')[-5000:])
+    build.mkdir(parents=True,exist_ok=True)
+    output=log_path.read_text(encoding='utf-8')
+    (build/'compile.log').write_text(output,encoding='utf-8')
+    print(output[-5000:])
     if result.returncode==0:
         import json
         (build/'build-kind.json').write_text(json.dumps({'version':a.version,'public':not(a.migrate_credentials or a.test_fail_boot),'migration':a.migrate_credentials,'test_fail_boot':a.test_fail_boot}))
