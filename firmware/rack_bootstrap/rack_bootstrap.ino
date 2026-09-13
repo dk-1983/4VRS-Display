@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include <WiFi.h>
-#include <WebServer.h>
+#include "StableWebServer.h"
 #include <Preferences.h>
 #include <ArduinoOTA.h>
 #include <esp_ota_ops.h>
@@ -19,12 +19,12 @@
 
 
 // Portrait ILI9341 demo with constant backlight and preserved Wi-Fi/OTA.
-static constexpr char VERSION[] = "0.2.3-settings";
+static constexpr char VERSION[] = "0.2.4-auth-fix";
 static constexpr uint32_t RETRY_MS = 30000, FALLBACK_MS = 60000;
 static_assert(sizeof(SETUP_PASSWORD) >= 13 && sizeof(SETUP_PASSWORD) <= 64,
               "Use a setup password of 12..63 ASCII characters");
 static_assert(sizeof(OTA_PASSWORD) >= 17, "Use an OTA password of at least 16 characters");
-WebServer web(80);
+StableWebServer web(80);
 Preferences prefs;
 String hostname, ssid, password, pendingSsid, pendingPassword;
 String formToken;
@@ -97,8 +97,8 @@ void showSetup() {
 // Web credentials are separate from OTA, as requested by the device owner.
 bool mqttAdmin() {
   if(!WebSettings::ready){web.send(503,"text/plain","Web settings unavailable.");return false;}
-  if(web.authenticate(WebSettings::config.username,WebSettings::config.password))return true;
-  web.requestAuthentication(DIGEST_AUTH,"4VRS Display");return false;
+  if(web.authenticateWeb(WebSettings::config.username,WebSettings::config.password))return true;
+  web.requestWebAuthentication();return false;
 }
 void configureWeb() {
   WebSettings::begin();
@@ -123,7 +123,9 @@ void configureWeb() {
     if(cJSON_HasObjectItem(j,"password"))valid=valid&&RackMqtt::textField(j,"password",next.password,sizeof(next.password));
     cJSON_Delete(j);
     if(!valid||!WebSettings::valid(next)){web.send(400,"text/plain",WebSettings::label("Проверьте логин, пароль и язык.","Check username, password and language."));return;}
+    bool credentialsChanged=strcmp(next.username,WebSettings::config.username)||strcmp(next.password,WebSettings::config.password);
     if(!WebSettings::save(next)){web.send(503,"text/plain","Could not save settings.");return;}
+    if(credentialsChanged)web.resetWebChallenge();
     RackMqtt::dirty=true;
     web.send(200,"application/json","{\"saved\":true}");
   });
