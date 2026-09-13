@@ -22,6 +22,9 @@ static constexpr char FEED[]="https://raw.githubusercontent.com/dk-1983/4VRS-Dis
 static constexpr char ASSET_PREFIX[]="https://github.com/dk-1983/4VRS-Display/releases/download/firmware-v";
 struct Settings { uint32_t magic=0x55504431,revision=0; bool web=true,ha=true,managed=false; };
 static Settings settings;
+RTC_NOINIT_ATTR static uint32_t traceStage;
+static uint32_t previousTrace=traceStage;
+static std::atomic<unsigned> stackFree{0};
 static Preferences storage;
 static SemaphoreHandle_t mutex=nullptr,flashGate=nullptr,policyGate=nullptr;
 static std::atomic<bool> webEnabled{true},haEnabled{true},managed{false},busy{false},manual{false},canvasReleased{false},checkRequested{false},bootConfirmed{false},networkReady{false},restartRequested{false};
@@ -97,8 +100,10 @@ inline esp_http_client_handle_t open(const char *url) {
     c.timeout_ms=15000;c.buffer_size=1024;c.buffer_size_tx=2304;
     c.disable_auto_redirect=true;c.user_agent="4VRS-Display/1";
     auto h=esp_http_client_init(&c);if(!h){transportCode=ESP_ERR_NO_MEM;return nullptr;}
+    traceStage=10+redirects;stackFree=uxTaskGetStackHighWaterMark(nullptr);
     transportCode=esp_http_client_open(h,0);
     if(transportCode!=ESP_OK){int code=0,flags=0;esp_http_client_get_and_clear_last_tls_error(h,&code,&flags);tlsCode=code;tlsFlags=flags;esp_http_client_cleanup(h);return nullptr;}
+    traceStage=20+redirects;stackFree=uxTaskGetStackHighWaterMark(nullptr);
     int64_t length=esp_http_client_fetch_headers(h);
     if(length<0){transportCode=(int)length;esp_http_client_cleanup(h);return nullptr;}
     int status=esp_http_client_get_status_code(h);httpCode=status;
@@ -106,7 +111,7 @@ inline esp_http_client_handle_t open(const char *url) {
     if(status!=301&&status!=302&&status!=307&&status!=308){esp_http_client_cleanup(h);return nullptr;}
     // get_url() omits the query string; CDN authorization requires the full Location.
     bool next=target.present&&target.valid;
-    esp_http_client_cleanup(h);
+    traceStage=30+redirects;esp_http_client_cleanup(h);
     if(!next){transportCode=ESP_ERR_INVALID_SIZE;return nullptr;}
   }
   transportCode=ESP_ERR_HTTP_MAX_REDIRECT;return nullptr;
@@ -122,10 +127,12 @@ inline void install(const Manifest &m) {
   if(!permitted()){state("blocked");return;}
   const esp_partition_t *partition=esp_ota_get_next_update_partition(nullptr);
   if(!partition||m.size>partition->size){state("error","partition_size");return;}
-  auto h=open(m.url);if(!h){state("error","download_https");return;}
+  traceStage=40;auto h=open(m.url);if(!h){state("error","download_https");return;}
   if(esp_http_client_get_content_length(h)!=m.size){esp_http_client_cleanup(h);state("error","download_size");return;}
   esp_ota_handle_t handle=0;
-  if(esp_ota_begin(partition,m.size,&handle)!=ESP_OK){esp_http_client_cleanup(h);state("error","ota_begin");return;}
+  // Erase sectors as they are written; bulk erase can starve the task watchdog.
+  traceStage=50;stackFree=uxTaskGetStackHighWaterMark(nullptr);
+  if(esp_ota_begin(partition,OTA_WITH_SEQUENTIAL_WRITES,&handle)!=ESP_OK){esp_http_client_cleanup(h);state("error","ota_begin");return;}
   state("downloading");
   mbedtls_sha256_context sha;mbedtls_sha256_init(&sha);mbedtls_sha256_starts(&sha,0);
   unsigned char buffer[1024];uint32_t total=0;bool ok=true;
@@ -137,6 +144,7 @@ inline void install(const Manifest &m) {
       while(n>0&&n<36){int more=esp_http_client_read(h,(char*)buffer+n,36-n);if(more<=0){n=-1;break;}n+=more;}
       if(n<36||buffer[0]!=0xe9||buffer[12]!=0||buffer[13]!=0||memcmp(buffer+32,"\x32\x54\xcd\xab",4)){ok=false;break;}
     }
+    traceStage=60;
     if(esp_ota_write(handle,buffer,n)!=ESP_OK){ok=false;break;}
     mbedtls_sha256_update(&sha,buffer,n);total+=n;vTaskDelay(1);
   }
@@ -204,6 +212,7 @@ inline void tick(bool localHealthy,bool connected) {
 }
 inline String status() {
   cJSON *j=cJSON_CreateObject();
+  cJSON_AddNumberToObject(j,"reset_reason",esp_reset_reason());cJSON_AddNumberToObject(j,"previous_update_stage",previousTrace);cJSON_AddNumberToObject(j,"update_stage",traceStage);cJSON_AddNumberToObject(j,"worker_stack_free",stackFree);
   cJSON_AddNumberToObject(j,"epoch",(double)time(nullptr));cJSON_AddNumberToObject(j,"largest_internal_block",heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL|MALLOC_CAP_8BIT));cJSON_AddNumberToObject(j,"http_status",httpCode);cJSON_AddNumberToObject(j,"transport_error",transportCode);cJSON_AddNumberToObject(j,"tls_error",tlsCode);cJSON_AddNumberToObject(j,"tls_flags",tlsFlags);
   cJSON_AddStringToObject(j,"installed",installed);cJSON_AddBoolToObject(j,"web_enabled",webEnabled);cJSON_AddBoolToObject(j,"ha_enabled",haEnabled);cJSON_AddBoolToObject(j,"ha_managed",managed);cJSON_AddNumberToObject(j,"revision",settings.revision);cJSON_AddBoolToObject(j,"effective_enabled",permitted());cJSON_AddBoolToObject(j,"boot_confirmed",bootConfirmed);cJSON_AddBoolToObject(j,"busy",busy);
   if(mutex){xSemaphoreTake(mutex,portMAX_DELAY);cJSON_AddStringToObject(j,"available",available);cJSON_AddStringToObject(j,"phase",phase);cJSON_AddStringToObject(j,"error",error);xSemaphoreGive(mutex);}
