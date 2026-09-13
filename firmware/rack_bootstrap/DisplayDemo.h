@@ -1,10 +1,12 @@
 #pragma once
 #include <SPI.h>
+#include <driver/gpio.h>
 #include <Adafruit_ILI9341.h>
 #include "DemoImage.h"
+#include "DisplayReadback.h"
 
 // NADIM V5 P6: CS=13, RESET=2, DC=14, MOSI=23, SCK=18.
-// Readback/MISO is not wired. Completion means bytes sent, not LCD detection.
+// New board: SDO -> GPIO19. Older boards may have no MISO; reads are diagnostic only.
 static constexpr uint32_t DISPLAY_SPI_HZ = 1000000;
 static SPIClass displaySpi(VSPI);
 static Adafruit_ILI9341 display(&displaySpi, 14, 13, 2);
@@ -16,7 +18,8 @@ static_assert(sizeof(DEMO_BMP) == DEMO_PIXEL_OFFSET + DEMO_WIDTH * DEMO_HEIGHT *
               "Expected packed RGB565 BMP");
 
 void startDisplayDemo() {
-  displaySpi.begin(18, -1, 23, 13);
+  displaySpi.begin(18, DisplayReadback::MISO_PIN, 23, 13);
+  gpio_pulldown_en(GPIO_NUM_19);
   display.begin(DISPLAY_SPI_HZ);
   display.setRotation(0);
   // User reports 0x20 is upside down: flip both scan axes for a 180-degree turn.
@@ -42,7 +45,9 @@ void updateDisplayDemo() {
 }
 
 String displayStatus() {
+  // Called by HTTP on the drawing/main task, never inside a pixel transaction.
+  if (displayStarted) DisplayReadback::sample(display);
   return String("{\"driver\":\"ILI9341\",\"width\":240,\"height\":320,\"rotation\":0,\"spi_hz\":") +
     String(DISPLAY_SPI_HZ) + ",\"madctl_sent\":224,\"rotation_from_0_1_10_deg\":180,\"image_rotation_cw\":0,\"image_width\":240,\"image_height\":320,\"rows_sent\":" + String(displayRow) +
-    ",\"readback\":false,\"cs\":13,\"dc\":14,\"reset\":2,\"mosi\":23,\"sck\":18}";
+    ",\"readback\":true,\"cs\":13,\"dc\":14,\"reset\":2,\"mosi\":23,\"sck\":18,\"registers\":" + DisplayReadback::status() + "}";
 }
