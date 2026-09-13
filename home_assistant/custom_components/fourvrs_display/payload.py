@@ -2,14 +2,14 @@
 import json
 import re
 
-MAX_CARDS = 12
-MAX_PAYLOAD = 9216
+MAX_CARDS = 20
+MAX_PAYLOAD = 15360
 KINDS = {"fan", "light", "valve", "sensor", "binary_sensor", "switch"}
 
 
 def validate_selection(entities):
     if not isinstance(entities, list) or not 1 <= len(entities) <= MAX_CARDS:
-        raise ValueError("Select between one and twelve entities")
+        raise ValueError("Select between one and twenty entities")
     if any(not isinstance(e, str) or len(e) > 96 or not re.fullmatch(r"[a-z][a-z0-9_]*\.[a-z0-9_]+", e) for e in entities):
         raise ValueError("Invalid entity id")
     if len(set(entities)) != len(entities):
@@ -24,7 +24,7 @@ def text(value, limit, default=""):
     return value.encode("utf-8", errors="replace")[:limit].decode("utf-8", errors="ignore") or default
 
 
-def encode_snapshot(session, key, seq, entities, lookup, presenter=None, areas=None):
+def encode_snapshot(session, key, seq, entities, lookup, presenter=None, areas=None, area_presenter=None):
     validate_selection(entities)
     if not all(isinstance(v, str) and re.fullmatch(r"[0-9a-f]{32}", v) for v in (session, key)):
         raise ValueError("Invalid session or pairing key")
@@ -50,7 +50,10 @@ def encode_snapshot(session, key, seq, entities, lookup, presenter=None, areas=N
             "unit": text(attrs.get("unit_of_measurement"), 16),
         })
         if areas is not None:
-            cards[-1]["area"] = text(areas.get(entity_id, ("", ""))[1], 48)
+            area_name = areas.get(entity_id, ("", ""))[1]
+            cards[-1]["area"] = text(area_name, 48)
+            if area_presenter is not None:
+                cards[-1]["area_icon"] = area_presenter(area_name)
         if presenter is not None:
             cards[-1].update(presenter(entity_id, attrs, cards[-1]["state"]))
     message = {"schema": 1, "key": key, "session": session, "seq": seq, "ttl_s": 90, "cards": cards}

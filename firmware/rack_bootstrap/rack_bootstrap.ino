@@ -19,7 +19,7 @@
 
 
 // Portrait ILI9341 demo with constant backlight and preserved Wi-Fi/OTA.
-static constexpr char VERSION[] = "0.3.1-areas";
+static constexpr char VERSION[] = "0.3.2-room-pages";
 static constexpr uint32_t RETRY_MS = 30000, FALLBACK_MS = 60000;
 static_assert(sizeof(SETUP_PASSWORD) >= 13 && sizeof(SETUP_PASSWORD) <= 64,
               "Use a setup password of 12..63 ASCII characters");
@@ -152,7 +152,13 @@ void configureWeb() {
   web.on("/display/pages",HTTP_GET,[](){
     if(!mqttAdmin())return;
     web.sendHeader("Cache-Control","no-store");
-    web.send(200,"application/json",String("{\"page\":")+String(mqttFramePage+1)+",\"pages\":"+String(RackMqtt::snapshot.count>3?RackMqtt::snapshot.count-2:1)+",\"cards_per_page\":3,\"interval_ms\":8000}");
+    cJSON *j=cJSON_CreateObject();
+    cJSON_AddNumberToObject(j,"page",mqttFramePage+1);cJSON_AddNumberToObject(j,"pages",mqttPlan.count);
+    cJSON_AddBoolToObject(j,"intro",mqttFrame.intro);cJSON_AddStringToObject(j,"area",mqttAreaLabel());
+    cJSON_AddNumberToObject(j,"area_page",mqttFrame.number);cJSON_AddNumberToObject(j,"area_pages",mqttFrame.total);
+    cJSON_AddNumberToObject(j,"first",mqttFrame.first);cJSON_AddNumberToObject(j,"visible",mqttFrame.count);
+    cJSON_AddNumberToObject(j,"cards_per_page",3);cJSON_AddNumberToObject(j,"interval_ms",RackPages::duration(mqttFrame));
+    web.send(200,"application/json",RackMqtt::printJson(j));
   });
   web.on("/display", HTTP_GET, [](){ web.sendHeader("Cache-Control", "no-store"); web.send(200, "application/json", displayStatus()); });
   web.on("/backlight", HTTP_GET, [](){ web.sendHeader("Cache-Control", "no-store"); web.send(200, "application/json", backlightStatus()); });

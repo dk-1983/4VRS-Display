@@ -60,7 +60,7 @@ class RuntimeTests(unittest.IsolatedAsyncioTestCase):
                 sys.modules[name] = value
 
     async def connect(self, session='a'*32):
-        caps = {'schema': 1, 'device_id': 'test', 'session': session, 'max_cards': 12, 'request_id': self.runtime.request_id}
+        caps = {'schema': 1, 'device_id': 'test', 'session': session, 'max_cards': 20, 'request_id': self.runtime.request_id}
         await self.runtime.capabilities(types.SimpleNamespace(payload=json.dumps(caps)))
 
     async def test_requires_handshake_and_sends_nonretained_snapshot(self):
@@ -74,19 +74,29 @@ class RuntimeTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_area_negotiation_and_registry_refresh_on_heartbeat(self):
         from unittest.mock import patch
-        caps = {'schema':1, 'device_id':'test', 'session':'a'*32, 'max_cards':12, 'request_id':self.runtime.request_id, 'area_v':1, 'max_payload':9216}
+        caps = {'schema':1, 'device_id':'test', 'session':'a'*32, 'max_cards':20, 'request_id':self.runtime.request_id, 'area_v':1, 'max_payload':15360}
         with patch('display_test_pkg.runtime.resolve_areas', return_value={'fan.server':('a','Балкон')}) as resolve:
             await self.runtime.capabilities(types.SimpleNamespace(payload=json.dumps(caps)))
             self.assertEqual(self.sent[-1][1]['cards'][0]['area'],'Балкон')
             resolve.return_value = {'fan.server':('b','Гараж')}
             await self.runtime.heartbeat(None)
             self.assertEqual(self.sent[-1][1]['cards'][0]['area'],'Гараж')
-            for limit in [8192, '9216', None]:
+            for limit in [9216, '15360', None]:
                 caps['max_payload'] = limit
                 await self.runtime.capabilities(types.SimpleNamespace(payload=json.dumps(caps)))
                 self.assertNotIn('area',self.sent[-1][1]['cards'][0])
         await self.connect('d'*32)
         self.assertNotIn('area',self.sent[-1][1]['cards'][0])
+
+    async def test_room_icons_are_negotiated(self):
+        from unittest.mock import patch
+        caps={'schema':1,'device_id':'test','session':'a'*32,'max_cards':20,'request_id':self.runtime.request_id,'area_v':1,'max_payload':15360,'area_icon_v':1}
+        with patch('display_test_pkg.runtime.resolve_areas',return_value={'fan.server':('a','Туалет')}):
+            await self.runtime.capabilities(types.SimpleNamespace(payload=json.dumps(caps)))
+            self.assertEqual(self.sent[-1][1]['cards'][0]['area_icon'],'toilet')
+            del caps['area_icon_v']
+            await self.runtime.capabilities(types.SimpleNamespace(payload=json.dumps(caps)))
+            self.assertNotIn('area_icon',self.sent[-1][1]['cards'][0])
 
     async def test_ack_cannot_come_from_old_session_or_future_sequence(self):
         await self.connect()

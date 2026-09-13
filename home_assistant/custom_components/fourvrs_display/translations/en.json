@@ -12,7 +12,7 @@
       },
       "entities": {
         "title": "First data",
-        "description": "Select one to twelve entities. The delivery sensor reports acceptance by the display.",
+        "description": "Select one to twenty entities. The delivery sensor reports acceptance by the display.",
         "data": {
           "entities": "Displayed entities"
         }
@@ -22,7 +22,7 @@
       "invalid_identity": "Check the device ID and 32-character key.",
       "mqtt_unavailable": "Connect the Home Assistant MQTT integration first.",
       "cannot_connect": "The device did not confirm the pairing key. Check broker, display settings and topic permissions.",
-      "invalid_selection": "Select one to twelve different entities."
+      "invalid_selection": "Select one to twenty different entities."
     },
     "abort": {
       "already_configured": "This display is already configured."
@@ -32,14 +32,14 @@
     "step": {
       "init": {
         "title": "Display entities",
-        "description": "Select one to twelve entities. Saving sends a new snapshot; check the delivery sensor for acceptance.",
+        "description": "Select one to twenty entities. Saving sends a new snapshot; check the delivery sensor for acceptance.",
         "data": {
           "entities": "Entities"
         }
       }
     },
     "error": {
-      "invalid_selection": "Select one to twelve different entities."
+      "invalid_selection": "Select one to twenty different entities."
     }
   }
 }

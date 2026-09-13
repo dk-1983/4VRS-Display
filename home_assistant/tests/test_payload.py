@@ -45,7 +45,7 @@ class PayloadTests(unittest.TestCase):
         self.assertLessEqual(len(encoded.encode()), 8192)
         self.assertEqual([c['id'] for c in json.loads(encoded)['cards']], entities)
         with self.assertRaises(ValueError):
-            self.encode(entities + ['sensor.extra'])
+            self.encode(['sensor.s'+str(i) for i in range(21)])
 
     def test_old_firmware_capacity_is_rejected(self):
         caps = {'schema': 1, 'device_id': 'test', 'session': 'a'*32, 'max_cards': 3}
@@ -60,7 +60,7 @@ class PayloadTests(unittest.TestCase):
             payload.encode_snapshot('retained-old-session', 'b'*32, 1, ['sensor.a'], lambda _: None)
 
     def test_handshake_requires_device_and_challenge(self):
-        caps = {'schema': 1, 'device_id': 'test', 'session': 'a'*32, 'max_cards': 12, 'request_id': 'challenge'}
+        caps = {'schema': 1, 'device_id': 'test', 'session': 'a'*32, 'max_cards': 20, 'request_id': 'challenge'}
         self.assertEqual(payload.decode_capabilities(json.dumps(caps), 'test', 'challenge'), caps)
         for device, challenge in [('other', 'challenge'), ('test', 'old')]:
             with self.assertRaises(ValueError):

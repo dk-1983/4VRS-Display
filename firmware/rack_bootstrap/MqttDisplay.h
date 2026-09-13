@@ -1,5 +1,7 @@
 #pragma once
 #include "MqttService.h"
+#include "MqttPaginationChecks.h"
+#include "RoomIcons.h"
 
 // The canvas is only one 80-row band (38.4 KB), not a second full framebuffer.
 static GFXcanvas16 *mqttCanvas=nullptr;
@@ -9,8 +11,8 @@ static uint32_t mqttShownSeq=0;
 static RackMqtt::Snapshot mqttPaintSnapshot;
 static unsigned mqttPage=0, mqttFramePage=0;
 static uint32_t mqttPageStarted=0;
-static constexpr uint32_t MQTT_PAGE_MS=8000;
-static constexpr unsigned MQTT_CARDS_PER_PAGE=3;
+static RackPages::Plan<RackMqtt::MAX_CARDS> mqttPlan;
+static RackPages::Page mqttFrame;
 
 static uint32_t nextRune(const char *&p) {
   uint8_t c=(uint8_t)*p++;if(c<128)return c;unsigned n=(c&0xe0)==0xc0?1:(c&0xf0)==0xe0?2:3;
@@ -38,17 +40,37 @@ static void drawLabel(GFXcanvas16 &c,const char *text,int x,int y,uint16_t color
     x+=6*scale;
   }
 }
+static const char *mqttAreaLabel() {
+  const auto &card=mqttPaintSnapshot.cards[mqttFrame.areaFirst];
+  return card.hasArea?(card.area[0]?card.area:WebSettings::label("БЕЗ ПОМЕЩЕНИЯ","UNASSIGNED")):"4VRS / HA";
+}
+static void drawRoomTitle(GFXcanvas16 &c,unsigned band) {
+  // 48 UTF-8 bytes fit in at most three 18-character lines at double scale.
+  const char *p=mqttAreaLabel();unsigned line=0;
+  while(*p&&line<3){char text[73];unsigned bytes=0,chars=0;
+    while(*p&&chars<18){const char *start=p;nextRune(p);while(start<p)text[bytes++]=*start++;++chars;}
+    text[bytes]=0;drawLabel(c,text,(240-chars*12)/2,130+int(line)*24-int(band)*80,ILI9341_CYAN,2);++line;
+  }
+}
 static void renderMqttBand(unsigned band,bool stale) {
   using namespace RackMqtt;
   auto &c=*mqttCanvas;c.fillScreen(ILI9341_BLACK);
+  if(mqttFrame.intro) {
+    if(!band){drawLabel(c,"4VRS / HA",8,7,ILI9341_WHITE);if(stale)drawLabel(c,WebSettings::label("ДАННЫЕ УСТАРЕЛИ","DATA STALE"),8,39,ILI9341_ORANGE);}
+    drawRoomIcon(c,mqttPaintSnapshot.cards[mqttFrame.areaFirst].areaIcon,96,65-int(band)*80,2,ILI9341_CYAN);
+    drawRoomTitle(c,band);
+    if(band==2){char count[32];snprintf(count,sizeof(count),"%s: %u",WebSettings::label("СУЩНОСТЕЙ","ENTITIES"),mqttFrame.areaCount);drawLabel(c,count,8,65,ILI9341_WHITE);}
+    return;
+  }
   if(!band) {
-    char heading[40];snprintf(heading,sizeof(heading),"4VRS / HA %u-%u / %u",mqttFramePage+1,std::min(mqttFramePage+3,mqttPaintSnapshot.count),mqttPaintSnapshot.count);
-    drawLabel(c,heading,8,7,ILI9341_CYAN);
-    drawLabel(c,connected?"MQTT ONLINE":"MQTT OFFLINE",8,23,connected?ILI9341_GREEN:ILI9341_ORANGE);
-    drawLabel(c,stale?WebSettings::label("ДАННЫЕ УСТАРЕЛИ","DATA STALE"):WebSettings::label("ДАННЫЕ ПОЛУЧЕНЫ","DATA RECEIVED"),8,39,stale?ILI9341_ORANGE:ILI9341_WHITE);
-    drawLabel(c,WiFi.localIP().toString().c_str(),8,57,ILI9341_DARKGREY);
-  } else if(mqttFramePage+band<=mqttPaintSnapshot.count) {
-    const auto &card=mqttPaintSnapshot.cards[mqttFramePage+band-1];bool unavailable=!strcmp(card.state,"unavailable"),unknown=!strcmp(card.state,"unknown");
+    drawRoomIcon(c,mqttPaintSnapshot.cards[mqttFrame.areaFirst].areaIcon,5,3,1,ILI9341_CYAN);
+    drawLabel(c,mqttAreaLabel(),34,7,ILI9341_CYAN);
+    char heading[40];snprintf(heading,sizeof(heading),"%s %u / %u",WebSettings::label("СТРАНИЦА","PAGE"),mqttFrame.number,mqttFrame.total);
+    drawLabel(c,heading,8,23,ILI9341_WHITE);
+    drawLabel(c,connected?"MQTT ONLINE":"MQTT OFFLINE",8,39,connected?ILI9341_GREEN:ILI9341_ORANGE);
+    drawLabel(c,stale?WebSettings::label("ДАННЫЕ УСТАРЕЛИ","DATA STALE"):WebSettings::label("ДАННЫЕ ПОЛУЧЕНЫ","DATA RECEIVED"),8,57,stale?ILI9341_ORANGE:ILI9341_WHITE);
+  } else if(band<=mqttFrame.count) {
+    const auto &card=mqttPaintSnapshot.cards[mqttFrame.first+band-1];bool unavailable=!strcmp(card.state,"unavailable"),unknown=!strcmp(card.state,"unknown");
     bool on=!strcmp(card.state,"on")||!strcmp(card.state,"open")||!strcmp(card.state,"opening");
     const char *icon=cardIcon(card);
     uint16_t color=ILI9341_CYAN;
@@ -58,13 +80,7 @@ static void renderMqttBand(unsigned band,bool stale) {
     else if(on)color=ILI9341_GREEN;
     if(card.alert)color=ILI9341_RED;
     if(stale||unavailable||unknown)color=ILI9341_DARKGREY;
-    if(card.hasArea) {
-      const char *area=card.area[0]?card.area:WebSettings::label("БЕЗ ПОМЕЩЕНИЯ","UNASSIGNED");
-      drawLabel(c,area,8,4,ILI9341_CYAN);
-      unsigned index=mqttFramePage+band-1;
-      if(!index||strcmp(card.area,mqttPaintSnapshot.cards[index-1].area))c.drawFastHLine(0,0,240,ILI9341_CYAN);
-    }
-    drawLabel(c,card.name,8,card.hasArea?16:6,ILI9341_WHITE);
+    drawLabel(c,card.name,8,6,ILI9341_WHITE);
     drawCardIcon(c,icon,color,on,unavailable||unknown,stale);
     const char *state=unavailable?WebSettings::label("НЕДОСТУПНО","UNAVAILABLE"):unknown?WebSettings::label("НЕИЗВЕСТНО","UNKNOWN"):card.state;
     drawLabel(c,state,47,31,color,strlen(state)<15?2:1);
@@ -77,14 +93,16 @@ static void updateMqttDisplay() {
   if(!config.enabled||!snapshot.valid){if(mqttShowing){displayRow=0;mqttShowing=false;}mqttPaintRow=320;mqttPage=0;mqttPageStarted=millis();updateDisplayDemo();return;}
   if(!mqttCanvas){mqttCanvas=new GFXcanvas16(240,80);if(!mqttCanvas||!mqttCanvas->getBuffer()){delete mqttCanvas;mqttCanvas=nullptr;updateDisplayDemo();return;}}
   bool stale=!connected||sequence==0||uint32_t(millis()-snapshot.received)>snapshot.ttl*1000;
-  unsigned pages=snapshot.count>MQTT_CARDS_PER_PAGE?snapshot.count-MQTT_CARDS_PER_PAGE+1:1;
   bool pageChanged=false;
   // A frame is immutable while being painted. Live updates must not restart
   // either the frame or the page timer, otherwise busy entities starve page 2.
   if(mqttPaintRow>=320) {
-    if(!mqttShowing||mqttPage>=pages){mqttPage=0;mqttPageStarted=millis();pageChanged=true;}
-    else if(pages>1&&uint32_t(millis()-mqttPageStarted)>=MQTT_PAGE_MS){mqttPage=(mqttPage+1)%pages;mqttPageStarted=millis();pageChanged=true;}
-    if(!mqttShowing||dirty||mqttShownSeq!=snapshot.seq||mqttWasStale!=stale||pageChanged){mqttPaintRow=0;mqttShowing=true;dirty=false;mqttShownSeq=snapshot.seq;mqttWasStale=stale;mqttPaintSnapshot=snapshot;mqttFramePage=mqttPage;}
+    bool layoutChanged=!mqttShowing||!RackPages::sameLayout(snapshot,mqttPaintSnapshot);
+    if(layoutChanged)mqttPlan=RackPages::makePlan<MAX_CARDS>(snapshot);
+    if(!mqttPlan.count)return;
+    if(layoutChanged||mqttPage>=mqttPlan.count){mqttPage=0;mqttPageStarted=millis();pageChanged=true;}
+    else if(mqttPlan.count>1&&uint32_t(millis()-mqttPageStarted)>=RackPages::duration(mqttFrame)){mqttPage=(mqttPage+1)%mqttPlan.count;mqttPageStarted=millis();pageChanged=true;}
+    if(!mqttShowing||dirty||mqttShownSeq!=snapshot.seq||mqttWasStale!=stale||pageChanged){mqttPaintRow=0;mqttShowing=true;dirty=false;mqttShownSeq=snapshot.seq;mqttWasStale=stale;mqttPaintSnapshot=snapshot;mqttFramePage=mqttPage;mqttFrame=mqttPlan.pages[mqttPage];}
   }
   if(mqttPaintRow>=320)return;
   unsigned row=mqttPaintRow%80;

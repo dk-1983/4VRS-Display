@@ -6,7 +6,7 @@ inline String localizeWeb(String page) {
   page.replace("Пустой пароль сохраняет текущий. Логин: 1–32 символа, пароль: 1–64. Используйте латинские буквы, цифры и символы без пробелов; двоеточие в логине недопустимо.","Leave the password empty to keep it. Username: 1\u201332 characters; password: 1\u201364. Use ASCII letters, numbers and symbols without spaces; no colon in the username.");
   page.replace("Эти данные используются только для web-входа. Пароли OTA, Wi-Fi и MQTT не изменяются.","These credentials are only for web sign-in. OTA, Wi-Fi and MQTT passwords remain unchanged.");
   page.replace("Точка настройки отключена. Вернитесь в локальную сеть и откройте показанный IP.","The setup access point is off. Rejoin your LAN and open the displayed IP address.");
-  page.replace("Первый канал HA: до 12 сущностей, по три на странице. Без данных остаётся встроенная заставка.","Display up to 12 Home Assistant entities, three per page. The default artwork is shown until data arrives.");
+  page.replace("Первый канал HA: до 20 сущностей, по три на странице. Без данных остаётся встроенная заставка.","Display up to 20 Home Assistant entities, three per page. The default artwork is shown until data arrives.");
   page.replace("Нет связи. Проверьте сохранённые настройки после подключения.","Connection lost. Check the saved settings after reconnecting.");
   page.replace("Выберите сеть 2,4 ГГц. Для скрытой сети введите имя вручную.","Choose a 2.4 GHz network. Enter the name manually for a hidden network.");
   page.replace("Точка настройки выключится после 15 секунд устойчивой связи.","The setup access point will turn off after 15 seconds of stable connection.");

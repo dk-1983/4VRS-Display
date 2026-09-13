@@ -39,7 +39,7 @@ inline void send(const char *suffix,const String &body,bool retain=false) {
 inline void capabilities(const char *request=nullptr) {
   cJSON *j=cJSON_CreateObject();cJSON_AddNumberToObject(j,"schema",1);cJSON_AddStringToObject(j,"device_id",deviceId);
   cJSON_AddStringToObject(j,"session",session);cJSON_AddStringToObject(j,"firmware",firmwareVersion);
-  cJSON_AddNumberToObject(j,"presentation_v",1);cJSON_AddNumberToObject(j,"area_v",1);cJSON_AddNumberToObject(j,"max_cards",MAX_CARDS);cJSON_AddNumberToObject(j,"max_payload",MAX_PAYLOAD);
+  cJSON_AddNumberToObject(j,"presentation_v",1);cJSON_AddNumberToObject(j,"area_v",1);cJSON_AddNumberToObject(j,"area_icon_v",1);cJSON_AddNumberToObject(j,"max_cards",MAX_CARDS);cJSON_AddNumberToObject(j,"max_payload",MAX_PAYLOAD);
   cJSON_AddNumberToObject(j,"width",240);cJSON_AddNumberToObject(j,"height",320);
   if(request)cJSON_AddStringToObject(j,"request_id",request);
   send("/capabilities",printJson(j));lastAnnounce=millis();
@@ -132,7 +132,8 @@ inline void tick() {
         capabilities(requestId);
       } else {++rejected;strlcpy(lastError,"request",sizeof(lastError));}
     } else {
-      static Snapshot next;next={};const char *error=decodeSnapshot(root,session,sequence,next);
+      // Clear in place: aggregate assignment creates an 8 KB stack temporary at 20 cards.
+      static Snapshot next;memset(&next,0,sizeof(next));next.ttl=90;const char *error=decodeSnapshot(root,session,sequence,next);
       cJSON *ack=cJSON_CreateObject();cJSON_AddNumberToObject(ack,"schema",1);cJSON_AddStringToObject(ack,"session",session);
       if(error){++rejected;strlcpy(lastError,error,sizeof(lastError));cJSON_AddStringToObject(ack,"status","rejected");cJSON_AddStringToObject(ack,"error",error);}
       else {next.received=millis();snapshot=next;sequence=next.seq;++accepted;dirty=true;lastError[0]=0;cJSON_AddStringToObject(ack,"status","accepted");}
@@ -149,7 +150,7 @@ inline String status() {
   cJSON_AddNumberToObject(j,"connections",connects);cJSON_AddNumberToObject(j,"transport_error",transportError);cJSON_AddStringToObject(j,"last_error",lastError);
   cJSON_AddNumberToObject(j,"seq",sequence);cJSON_AddBoolToObject(j,"has_snapshot",snapshot.valid);
   cJSON_AddBoolToObject(j,"stale",snapshot.valid&&uint32_t(millis()-snapshot.received)>snapshot.ttl*1000);
-  cJSON *cards=cJSON_AddArrayToObject(j,"cards");if(snapshot.valid)for(unsigned i=0;i<snapshot.count;i++){cJSON *c=cJSON_CreateObject();cJSON_AddStringToObject(c,"id",snapshot.cards[i].id);cJSON_AddStringToObject(c,"name",snapshot.cards[i].name);cJSON_AddStringToObject(c,"state",snapshot.cards[i].state);cJSON_AddStringToObject(c,"icon",cardIcon(snapshot.cards[i]));if(snapshot.cards[i].hasArea)cJSON_AddStringToObject(c,"area",snapshot.cards[i].area);cJSON_AddItemToArray(cards,c);}
+  cJSON *cards=cJSON_AddArrayToObject(j,"cards");if(snapshot.valid)for(unsigned i=0;i<snapshot.count;i++){cJSON *c=cJSON_CreateObject();cJSON_AddStringToObject(c,"id",snapshot.cards[i].id);cJSON_AddStringToObject(c,"name",snapshot.cards[i].name);cJSON_AddStringToObject(c,"state",snapshot.cards[i].state);cJSON_AddStringToObject(c,"icon",cardIcon(snapshot.cards[i]));if(snapshot.cards[i].hasArea)cJSON_AddStringToObject(c,"area",snapshot.cards[i].area);if(snapshot.cards[i].areaIcon[0])cJSON_AddStringToObject(c,"area_icon",snapshot.cards[i].areaIcon);cJSON_AddItemToArray(cards,c);}
   return printJson(j);
 }
 inline String publicConfig() {
