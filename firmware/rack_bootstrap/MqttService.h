@@ -5,6 +5,7 @@
 #include <freertos/queue.h>
 #include <freertos/task.h>
 #include "MqttProtocol.h"
+#include "MqttIcons.h"
 
 namespace RackMqtt {
 struct Config {
@@ -148,7 +149,7 @@ inline String status() {
   cJSON_AddNumberToObject(j,"connections",connects);cJSON_AddNumberToObject(j,"transport_error",transportError);cJSON_AddStringToObject(j,"last_error",lastError);
   cJSON_AddNumberToObject(j,"seq",sequence);cJSON_AddBoolToObject(j,"has_snapshot",snapshot.valid);
   cJSON_AddBoolToObject(j,"stale",snapshot.valid&&uint32_t(millis()-snapshot.received)>snapshot.ttl*1000);
-  cJSON *cards=cJSON_AddArrayToObject(j,"cards");if(snapshot.valid)for(unsigned i=0;i<snapshot.count;i++){cJSON *c=cJSON_CreateObject();cJSON_AddStringToObject(c,"id",snapshot.cards[i].id);cJSON_AddStringToObject(c,"name",snapshot.cards[i].name);cJSON_AddStringToObject(c,"state",snapshot.cards[i].state);cJSON_AddItemToArray(cards,c);}
+  cJSON *cards=cJSON_AddArrayToObject(j,"cards");if(snapshot.valid)for(unsigned i=0;i<snapshot.count;i++){cJSON *c=cJSON_CreateObject();cJSON_AddStringToObject(c,"id",snapshot.cards[i].id);cJSON_AddStringToObject(c,"name",snapshot.cards[i].name);cJSON_AddStringToObject(c,"state",snapshot.cards[i].state);cJSON_AddStringToObject(c,"icon",cardIcon(snapshot.cards[i]));cJSON_AddItemToArray(cards,c);}
   return printJson(j);
 }
 inline String publicConfig() {

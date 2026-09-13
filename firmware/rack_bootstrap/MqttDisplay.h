@@ -45,12 +45,15 @@ static void renderMqttBand(unsigned band,bool stale) {
   } else if(band<=mqttPaintSnapshot.count) {
     const auto &card=mqttPaintSnapshot.cards[band-1];bool unavailable=!strcmp(card.state,"unavailable"),unknown=!strcmp(card.state,"unknown");
     bool on=!strcmp(card.state,"on")||!strcmp(card.state,"open")||!strcmp(card.state,"opening");
-    uint16_t color=stale||unavailable||unknown?ILI9341_DARKGREY:on?ILI9341_GREEN:ILI9341_CYAN;
+    const char *icon=cardIcon(card);
+    uint16_t color=ILI9341_CYAN;
+    if(!strcmp(icon,"temperature"))color=ILI9341_ORANGE;
+    else if(!strcmp(icon,"light"))color=on?ILI9341_YELLOW:ILI9341_LIGHTGREY;
+    else if(!strcmp(icon,"leak"))color=on?ILI9341_RED:ILI9341_CYAN;
+    else if(on)color=ILI9341_GREEN;
+    if(stale||unavailable||unknown)color=ILI9341_DARKGREY;
     drawLabel(c,card.name,8,6,ILI9341_WHITE);
-    if(!strcmp(card.kind,"light")){c.drawCircle(21,40,10,color);c.drawRect(16,51,11,4,color);if(on)c.fillCircle(21,40,6,color);}
-    else if(!strcmp(card.kind,"fan")){c.drawCircle(21,43,16,color);c.fillCircle(21,43,3,color);for(int i=0;i<3;i++){float a=i*2.0944f;c.fillTriangle(21,43,21+int(cosf(a)*13),43+int(sinf(a)*13),21+int(cosf(a+.8f)*10),43+int(sinf(a+.8f)*10),color);}}
-    else if(!strcmp(card.kind,"valve")){c.drawRect(7,40,27,8,color);c.drawFastVLine(21,30,10,color);c.drawFastHLine(13,30,17,color);c.drawFastVLine(33,48,10,color);}
-    else {c.drawRoundRect(6,29,31,29,4,color);drawLabel(c,card.kind[0]=='s'?"#":"?",17,40,color);}
+    drawCardIcon(c,icon,color,on,unavailable||unknown);
     const char *state=unavailable?WebSettings::label("НЕДОСТУПНО","UNAVAILABLE"):unknown?WebSettings::label("НЕИЗВЕСТНО","UNKNOWN"):card.state;
     drawLabel(c,state,47,31,color,strlen(state)<15?2:1);
     drawLabel(c,card.unit,48,55,ILI9341_WHITE);
