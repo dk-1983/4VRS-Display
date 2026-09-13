@@ -54,9 +54,17 @@ Home Assistant → MQTT-брокер → 4VRS Display
 | MOSI / SDA | 23 |
 | SCK | 18 |
 | SDO / MISO, необязательная диагностика | 19 |
-| Управление подсветкой через внешний транзистор | 4 |
+| Вход LED (транзистор установлен на модуле) | 4 |
 
-Тачскрин и microSD для работы не нужны. Уровень сигналов GPIO — 3,3 В; питание модуля дисплея подключается согласно его документации, подсветка управляется через транзисторную схему.
+Тачскрин и microSD для работы не нужны. Уровень сигналов GPIO — 3,3 В; питание модуля дисплея подключается согласно его документации, GPIO4 подключается к входу LED, управляющему транзистором на самом модуле.
+
+## Документация производителей
+
+- [LCDWIKI: модуль SPI ILI9341 2,4 дюйма](https://www.lcdwiki.com/2.4inch_SPI_Module_ILI9341_SKU:MSP2402) — электрическая схема, руководство и габаритные чертежи.
+- [Каталог документации Espressif](https://www.espressif.com/en/support/documents/technical-documents) — datasheet нужно выбирать по точной маркировке модуля.
+- [Datasheet ESP32-WROVER-E / WROVER-IE](https://documentation.espressif.com/esp32-wrover-e_esp32-wrover-ie_datasheet_en.html) и [рекомендации Espressif по схемотехнике ESP32](https://docs.espressif.com/projects/esp-hardware-design-guidelines/en/latest/esp32/schematic-checklist.html).
+- [Документация ESP LINK v1.0 от IOT-MCU](https://github.com/IOT-MCU/ESP-LINK-v1.0) — пример USB-UART адаптера, а не обязательная модель. Инструкции для ESP-01 из его руководства не заменяют порядок прошивки ESP32.
+- [Наша электрическая схема, перечень деталей и пояснения](hardware/schematic/README.ru.md).
 
 ## Первый запуск
 

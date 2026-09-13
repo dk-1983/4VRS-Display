@@ -1,0 +1,14 @@
+﻿Reference,Specification
+U1,"ESP32-WROVER(-I), PSRAM, module"
+U2,"AP7361C-33ER-13, 3.3 V, SOT223R"
+D1,"1N5817, series reverse-polarity diode"
+J1 / J2,2-pin power / 3-pin UART connector
+DS1,"TFT SPI ILI9341 240x320, LED logic input"
+C1 / C3,"10uF X7R, 10 V; effective C >= 4.7uF"
+C2 / C4,"100nF X7R, 10 V or higher"
+C5,"100uF electrolytic, >= 6.3 V"
+C6,"1uF X7R, >= 6.3 V"
+R1 / R2,"10k, 1%, 0.1 W or higher"
+R3,"100k, 1%, optional PWM pull-down"
+SW1 / SW2,Normally-open momentary PGM / RESET
+R4-R6 / SW3-SW5,Optional: 10k / normally-open buttons

@@ -54,9 +54,17 @@ The current firmware targets **ESP32-WROVER with 4 MiB PSRAM**, the **NADIM V5**
 | MOSI / SDA | 23 |
 | SCK | 18 |
 | SDO / MISO, optional diagnostics | 19 |
-| Backlight control through an external transistor | 4 |
+| LED logic input (module has a transistor) | 4 |
 
-A touchscreen and microSD card are not required. GPIO signals use 3.3 V logic; follow the display module's power specifications and use the transistor circuit for backlight control.
+A touchscreen and microSD card are not required. GPIO signals use 3.3 V logic; follow the display module's power specifications and connect GPIO4 to the module's LED control input, which drives its onboard transistor.
+
+## Manufacturer documentation
+
+- [LCDWIKI: 2.4-inch SPI ILI9341 module](https://www.lcdwiki.com/2.4inch_SPI_Module_ILI9341_SKU:MSP2402) — module schematic, user manual and mechanical drawings.
+- [Espressif documentation catalogue](https://www.espressif.com/en/support/documents/technical-documents) — select the datasheet matching the exact module marking.
+- [ESP32-WROVER-E / WROVER-IE datasheet](https://documentation.espressif.com/esp32-wrover-e_esp32-wrover-ie_datasheet_en.html) and [ESP32 hardware design guidelines](https://docs.espressif.com/projects/esp-hardware-design-guidelines/en/latest/esp32/schematic-checklist.html).
+- [ESP LINK v1.0 documentation from IOT-MCU](https://github.com/IOT-MCU/ESP-LINK-v1.0) — an example USB-UART adapter, not a required model. Its ESP-01 instructions are not the ESP32 flashing procedure.
+- [Our electrical schematic, BOM and assembly notes](hardware/schematic/README.md).
 
 ## First setup
 

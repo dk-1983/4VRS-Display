@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE svg
+  PUBLIC '-//W3C//DTD SVG 1.0//EN'
+  'http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd'>
+<svg width="1190" height="842" preserveAspectRatio="xMinYMin meet" viewBox="0 0 1190 842" xmlns="http://www.w3.org/2000/svg" version="1.0" fill-rule="evenodd" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<title>...</title>
+	<desc>...</desc>
+	<clipPath id="clip">
+		<rect x="0" y="0" width="1190" height="842"/>
+	</clipPath>
+	<g id="group" transform="scale(1,-1) translate(0,-842)" style="clip-path: url(#clip)">
+		<g transform="">
+			<rect x="0" y="0" width="1190" height="842" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<rect x="18" y="18" width="1154" height="806" style="stroke: rgb(9%,20%,29%); stroke-linecap: butt; stroke-width: 1; fill: none; fill-rule: evenodd;"/>
+			<text x="36" y="795" style="font-family: Helvetica; font-size: 22px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,1590) scale(1,-1)">4VRS DISPLAY</text>
+			<text x="270" y="796" style="font-family: Helvetica; font-size: 16px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,1592) scale(1,-1)">Assembly notes, options and component list</text>
+			<text x="36" y="773" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,1546) scale(1,-1)">Electrical schematic | Rev A1 | 2026-09-14 | ESP32-WROVER + ILI9341 SPI 240x320</text>
+			<path d="M 18,762 L 1172,762 Z" style="stroke: rgb(9%,20%,29%); stroke-linecap: butt; stroke-width: 1;"/>
+			<text x="36" y="27" style="font-family: Helvetica; font-size: 9px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,54) scale(1,-1)">Design proposal based on supplied NADIM V5 / LCDWIKI drawings; additions are identified. Not a PCB layout.</text>
+			<text x="1020" y="27" style="font-family: Helvetica; font-size: 9px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,54) scale(1,-1)">A3 landscape | 3 / 3</text>
+			<rect x="35" y="522" width="1120" height="225" style="stroke: rgb(72%,78%,81%); stroke-linecap: butt; stroke-width: 1; fill: none; fill-rule: evenodd;"/>
+			<text x="47" y="725" style="font-family: Helvetica; font-size: 12px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,1450) scale(1,-1)">7. OPTIONAL BUTTONS - hardware provision; navigation is not implemented in firmware 0.4.3</text>
+			<text x="85" y="698" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,45%,31%); stroke:none;" transform="translate(0,1396) scale(1,-1)">+3V3</text>
+			<path d="M 100,689 L 100,668.5 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<rect x="95" y="644.5" width="10" height="24.0" style="stroke: rgb(64%,16%,21%); stroke-linecap: butt; stroke-width: 1; fill: none; fill-rule: evenodd;"/>
+			<path d="M 100,644.5 L 100,624 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<text x="110" y="659.5" style="font-family: Helvetica; font-size: 9px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,1319) scale(1,-1)">R4</text>
+			<text x="110" y="645.5" style="font-family: Helvetica; font-size: 9px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,1291) scale(1,-1)">10k</text>
+			<path d="M 100,624 L 142,624 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<text x="147" y="621" style="font-family: Helvetica; font-size: 9px;fill: rgb(9%,45%,31%); stroke:none;" transform="translate(0,1242) scale(1,-1)">BTN_A</text>
+			<circle cx="100" cy="624" r="2.2" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1; fill: rgb(9%,45%,31%); fill-rule: evenodd;"/>
+			<path d="M 100,624 L 100,585 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<path d="M 100,585 L 122,585 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<circle cx="122" cy="585" r="2" style="stroke: rgb(64%,16%,21%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="150" cy="585" r="2" style="stroke: rgb(64%,16%,21%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<path d="M 124,589 L 149,599 Z" style="stroke: rgb(64%,16%,21%); stroke-linecap: butt; stroke-width: 1;"/>
+			<path d="M 150,585 L 175,585 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<text x="122" y="613" style="font-family: Helvetica; font-size: 9px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,1226) scale(1,-1)">SW3 A</text>
+			<path d="M 175,585 L 175,577 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<path d="M 166,577 L 184,577 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<path d="M 169,573 L 181,573 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<path d="M 172,569 L 178,569 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<text x="164" y="556" style="font-family: Helvetica; font-size: 8px;fill: rgb(9%,45%,31%); stroke:none;" transform="translate(0,1112) scale(1,-1)">GND</text>
+			<text x="220" y="602" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,1204) scale(1,-1)">GPIO36 input only</text>
+			<text x="220" y="581" style="font-family: Helvetica; font-size: 9px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,1162) scale(1,-1)">External pull-up required</text>
+			<text x="440" y="698" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,45%,31%); stroke:none;" transform="translate(0,1396) scale(1,-1)">+3V3</text>
+			<path d="M 455,689 L 455,668.5 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<rect x="450" y="644.5" width="10" height="24.0" style="stroke: rgb(64%,16%,21%); stroke-linecap: butt; stroke-width: 1; fill: none; fill-rule: evenodd;"/>
+			<path d="M 455,644.5 L 455,624 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<text x="465" y="659.5" style="font-family: Helvetica; font-size: 9px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,1319) scale(1,-1)">R5</text>
+			<text x="465" y="645.5" style="font-family: Helvetica; font-size: 9px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,1291) scale(1,-1)">10k</text>
+			<path d="M 455,624 L 497,624 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<text x="502" y="621" style="font-family: Helvetica; font-size: 9px;fill: rgb(9%,45%,31%); stroke:none;" transform="translate(0,1242) scale(1,-1)">BTN_B</text>
+			<circle cx="455" cy="624" r="2.2" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1; fill: rgb(9%,45%,31%); fill-rule: evenodd;"/>
+			<path d="M 455,624 L 455,585 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<path d="M 455,585 L 477,585 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<circle cx="477" cy="585" r="2" style="stroke: rgb(64%,16%,21%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="505" cy="585" r="2" style="stroke: rgb(64%,16%,21%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<path d="M 479,589 L 504,599 Z" style="stroke: rgb(64%,16%,21%); stroke-linecap: butt; stroke-width: 1;"/>
+			<path d="M 505,585 L 530,585 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<text x="477" y="613" style="font-family: Helvetica; font-size: 9px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,1226) scale(1,-1)">SW4 B</text>
+			<path d="M 530,585 L 530,577 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<path d="M 521,577 L 539,577 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<path d="M 524,573 L 536,573 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<path d="M 527,569 L 533,569 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<text x="519" y="556" style="font-family: Helvetica; font-size: 8px;fill: rgb(9%,45%,31%); stroke:none;" transform="translate(0,1112) scale(1,-1)">GND</text>
+			<text x="575" y="602" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,1204) scale(1,-1)">GPIO39 input only</text>
+			<text x="575" y="581" style="font-family: Helvetica; font-size: 9px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,1162) scale(1,-1)">External pull-up required</text>
+			<text x="795" y="698" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,45%,31%); stroke:none;" transform="translate(0,1396) scale(1,-1)">+3V3</text>
+			<path d="M 810,689 L 810,668.5 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<rect x="805" y="644.5" width="10" height="24.0" style="stroke: rgb(64%,16%,21%); stroke-linecap: butt; stroke-width: 1; fill: none; fill-rule: evenodd;"/>
+			<path d="M 810,644.5 L 810,624 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<text x="820" y="659.5" style="font-family: Helvetica; font-size: 9px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,1319) scale(1,-1)">R6</text>
+			<text x="820" y="645.5" style="font-family: Helvetica; font-size: 9px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,1291) scale(1,-1)">10k</text>
+			<path d="M 810,624 L 852,624 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<text x="857" y="621" style="font-family: Helvetica; font-size: 9px;fill: rgb(9%,45%,31%); stroke:none;" transform="translate(0,1242) scale(1,-1)">BTN_C</text>
+			<circle cx="810" cy="624" r="2.2" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1; fill: rgb(9%,45%,31%); fill-rule: evenodd;"/>
+			<path d="M 810,624 L 810,585 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<path d="M 810,585 L 832,585 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<circle cx="832" cy="585" r="2" style="stroke: rgb(64%,16%,21%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="860" cy="585" r="2" style="stroke: rgb(64%,16%,21%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<path d="M 834,589 L 859,599 Z" style="stroke: rgb(64%,16%,21%); stroke-linecap: butt; stroke-width: 1;"/>
+			<path d="M 860,585 L 885,585 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<text x="832" y="613" style="font-family: Helvetica; font-size: 9px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,1226) scale(1,-1)">SW5 C</text>
+			<path d="M 885,585 L 885,577 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<path d="M 876,577 L 894,577 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<path d="M 879,573 L 891,573 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<path d="M 882,569 L 888,569 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<text x="874" y="556" style="font-family: Helvetica; font-size: 8px;fill: rgb(9%,45%,31%); stroke:none;" transform="translate(0,1112) scale(1,-1)">GND</text>
+			<text x="930" y="602" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,1204) scale(1,-1)">GPIO35 input only</text>
+			<text x="930" y="581" style="font-family: Helvetica; font-size: 9px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,1162) scale(1,-1)">External pull-up required</text>
+			<rect x="35" y="65" width="535" height="440" style="stroke: rgb(72%,78%,81%); stroke-linecap: butt; stroke-width: 1; fill: none; fill-rule: evenodd;"/>
+			<text x="47" y="483" style="font-family: Helvetica; font-size: 12px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,966) scale(1,-1)">8. MAIN ASSEMBLY BOM</text>
+			<text x="50" y="455" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,910) scale(1,-1)">U1</text>
+			<text x="170" y="455" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,910) scale(1,-1)">ESP32-WROVER(-I), PSRAM, module</text>
+			<path d="M 48,447 L 552,447 Z" style="stroke: rgb(85%,89%,90%); stroke-linecap: butt; stroke-width: 0.5;"/>
+			<text x="50" y="429" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,858) scale(1,-1)">U2</text>
+			<text x="170" y="429" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,858) scale(1,-1)">AP7361C-33ER-13, 3.3 V, SOT223R</text>
+			<path d="M 48,421 L 552,421 Z" style="stroke: rgb(85%,89%,90%); stroke-linecap: butt; stroke-width: 0.5;"/>
+			<text x="50" y="403" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,806) scale(1,-1)">D1</text>
+			<text x="170" y="403" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,806) scale(1,-1)">1N5817, series reverse-polarity diode</text>
+			<path d="M 48,395 L 552,395 Z" style="stroke: rgb(85%,89%,90%); stroke-linecap: butt; stroke-width: 0.5;"/>
+			<text x="50" y="377" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,754) scale(1,-1)">J1 / J2</text>
+			<text x="170" y="377" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,754) scale(1,-1)">2-pin power / 3-pin UART connector</text>
+			<path d="M 48,369 L 552,369 Z" style="stroke: rgb(85%,89%,90%); stroke-linecap: butt; stroke-width: 0.5;"/>
+			<text x="50" y="351" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,702) scale(1,-1)">DS1</text>
+			<text x="170" y="351" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,702) scale(1,-1)">TFT SPI ILI9341 240x320, LED logic input</text>
+			<path d="M 48,343 L 552,343 Z" style="stroke: rgb(85%,89%,90%); stroke-linecap: butt; stroke-width: 0.5;"/>
+			<text x="50" y="325" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,650) scale(1,-1)">C1 / C3</text>
+			<text x="170" y="325" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,650) scale(1,-1)">10uF X7R, 10 V; effective C &gt;= 4.7uF</text>
+			<path d="M 48,317 L 552,317 Z" style="stroke: rgb(85%,89%,90%); stroke-linecap: butt; stroke-width: 0.5;"/>
+			<text x="50" y="299" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,598) scale(1,-1)">C2 / C4</text>
+			<text x="170" y="299" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,598) scale(1,-1)">100nF X7R, 10 V or higher</text>
+			<path d="M 48,291 L 552,291 Z" style="stroke: rgb(85%,89%,90%); stroke-linecap: butt; stroke-width: 0.5;"/>
+			<text x="50" y="273" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,546) scale(1,-1)">C5</text>
+			<text x="170" y="273" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,546) scale(1,-1)">100uF electrolytic, &gt;= 6.3 V</text>
+			<path d="M 48,265 L 552,265 Z" style="stroke: rgb(85%,89%,90%); stroke-linecap: butt; stroke-width: 0.5;"/>
+			<text x="50" y="247" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,494) scale(1,-1)">C6</text>
+			<text x="170" y="247" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,494) scale(1,-1)">1uF X7R, &gt;= 6.3 V</text>
+			<path d="M 48,239 L 552,239 Z" style="stroke: rgb(85%,89%,90%); stroke-linecap: butt; stroke-width: 0.5;"/>
+			<text x="50" y="221" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,442) scale(1,-1)">R1 / R2</text>
+			<text x="170" y="221" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,442) scale(1,-1)">10k, 1%, 0.1 W or higher</text>
+			<path d="M 48,213 L 552,213 Z" style="stroke: rgb(85%,89%,90%); stroke-linecap: butt; stroke-width: 0.5;"/>
+			<text x="50" y="195" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,390) scale(1,-1)">R3</text>
+			<text x="170" y="195" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,390) scale(1,-1)">100k, 1%, optional PWM pull-down</text>
+			<path d="M 48,187 L 552,187 Z" style="stroke: rgb(85%,89%,90%); stroke-linecap: butt; stroke-width: 0.5;"/>
+			<text x="50" y="169" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,338) scale(1,-1)">SW1 / SW2</text>
+			<text x="170" y="169" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,338) scale(1,-1)">Normally-open momentary PGM / RESET</text>
+			<path d="M 48,161 L 552,161 Z" style="stroke: rgb(85%,89%,90%); stroke-linecap: butt; stroke-width: 0.5;"/>
+			<text x="50" y="143" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,286) scale(1,-1)">R4-R6 / SW3-SW5</text>
+			<text x="170" y="143" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,286) scale(1,-1)">Optional: 10k / normally-open buttons</text>
+			<path d="M 48,135 L 552,135 Z" style="stroke: rgb(85%,89%,90%); stroke-linecap: butt; stroke-width: 0.5;"/>
+			<text x="50" y="94" style="font-family: Helvetica; font-size: 9px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,188) scale(1,-1)">Q20 / R20-R22 belong only to the alternative, not the main BOM.</text>
+			<rect x="590" y="65" width="565" height="440" style="stroke: rgb(72%,78%,81%); stroke-linecap: butt; stroke-width: 1; fill: none; fill-rule: evenodd;"/>
+			<text x="602" y="483" style="font-family: Helvetica; font-size: 12px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,966) scale(1,-1)">9. BUILD CONDITIONS AND REFERENCES</text>
+			<text x="607" y="459" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,918) scale(1,-1)">U2 is a proposed change from the original L1117-33 supply.</text>
+			<text x="607" y="439" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,878) scale(1,-1)">Check the exact SOT223R package: 1=GND, 2/tab=OUT, 3=IN.</text>
+			<text x="607" y="419" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,838) scale(1,-1)">Ordinary SOT223 AP7361C has a different pinout.</text>
+			<text x="607" y="399" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,798) scale(1,-1)">Place C1/C2 close to U2 IN; C3 close to U2 OUT.</text>
+			<text x="607" y="379" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,758) scale(1,-1)">Place C4/C5 close to U1 power pins with a short ground return.</text>
+			<text x="607" y="359" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,718) scale(1,-1)">Allow at least 500 mA for ESP32 plus LCD/backlight current.</text>
+			<text x="607" y="339" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,678) scale(1,-1)">LDO heat: P=(Vin-3.3)*I; 4.7 V at 0.5 A gives about 0.7 W.</text>
+			<text x="607" y="319" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,638) scale(1,-1)">Provide copper area and check temperature inside the enclosure.</text>
+			<text x="607" y="299" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,598) scale(1,-1)">For sustained high load, use a qualified 3.3 V buck supply.</text>
+			<text x="607" y="279" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,558) scale(1,-1)">DS1 VCC=3.3 V: close its supply jumper J1 (0R bypass).</text>
+			<text x="607" y="259" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,518) scale(1,-1)">If changing DS1 VCC to 5 V, open its J1 first.</text>
+			<text x="607" y="239" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,478) scale(1,-1)">Touch pins and microSD connector are intentionally not wired.</text>
+			<text x="607" y="219" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,438) scale(1,-1)">GPIO numbers are not ESP32 chip QFN pad numbers.</text>
+			<text x="607" y="199" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,398) scale(1,-1)">No ERC/SPICE or new PCB hardware validation has been run.</text>
+			<text x="607" y="179" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,358) scale(1,-1)">Confirm supply, startup and current on the assembled hardware.</text>
+			<text x="607" y="138" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,276) scale(1,-1)">Manufacturer documentation (clickable in PDF):</text>
+			<text x="607" y="117" style="font-family: Helvetica; font-size: 9px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,234) scale(1,-1)">LCDWIKI MSP2402: module schematic and manual</text>
+			<text x="607" y="100" style="font-family: Helvetica; font-size: 9px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,200) scale(1,-1)">Espressif: WROVER module / hardware design guidelines</text>
+			<text x="607" y="83" style="font-family: Helvetica; font-size: 9px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,166) scale(1,-1)">Diodes: AP7361C datasheet; original 1117: see TI datasheet</text>
+		</g>
+	</g>
+</svg>
