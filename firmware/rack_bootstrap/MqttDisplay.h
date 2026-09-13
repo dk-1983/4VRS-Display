@@ -36,7 +36,7 @@ static void drawLabel(GFXcanvas16 &c,const char *text,int x,int y,uint16_t color
     if(r==0x451||r==0x401)r=0x415;
     if(r>=0x430&&r<=0x44f)r-=32;
     if(r>=0x410&&r<=0x42f){for(int row=0;row<7;row++)for(int col=0;col<5;col++)if(ru[r-0x410][row]&(16>>col))c.fillRect(x+col*scale,y+row*scale,scale,scale,color);}
-    else c.drawChar(x,y,r>=32&&r<127?(char)r:(r==0xb0?(char)247:'?'),color,ILI9341_BLACK,scale);
+    else c.drawChar(x,y,r>=32&&r<127?(char)r:(r==0xb0?(char)247:'?'),color,color,scale);
     x+=6*scale;
   }
 }
@@ -49,17 +49,33 @@ static void drawRoomTitle(GFXcanvas16 &c,unsigned band) {
   const char *p=mqttAreaLabel();unsigned line=0;
   while(*p&&line<3){char text[73];unsigned bytes=0,chars=0;
     while(*p&&chars<18){const char *start=p;nextRune(p);while(start<p)text[bytes++]=*start++;++chars;}
-    text[bytes]=0;drawLabel(c,text,(240-chars*12)/2,130+int(line)*24-int(band)*80,ILI9341_CYAN,2);++line;
+    text[bytes]=0;drawLabel(c,text,(240-chars*12)/2,228+int(line)*24-int(band)*80,ILI9341_WHITE,2);++line;
   }
 }
 static void renderMqttBand(unsigned band,bool stale) {
   using namespace RackMqtt;
   auto &c=*mqttCanvas;c.fillScreen(ILI9341_BLACK);
   if(mqttFrame.intro) {
-    if(!band){drawLabel(c,"4VRS / HA",8,7,ILI9341_WHITE);if(stale)drawLabel(c,WebSettings::label("ДАННЫЕ УСТАРЕЛИ","DATA STALE"),8,39,ILI9341_ORANGE);}
-    drawRoomIcon(c,mqttPaintSnapshot.cards[mqttFrame.areaFirst].areaIcon,96,65-int(band)*80,2,ILI9341_CYAN);
+    const char *icon=mqttPaintSnapshot.cards[mqttFrame.areaFirst].areaIcon;
+    uint16_t accent=roomAccent(icon);
+    for(int row=0;row<80;++row){unsigned strength=12+(band*80+row)/20;
+      uint16_t shade=((((accent>>11)&31)*strength/100)<<11)|((((accent>>5)&63)*strength/100)<<5)|((accent&31)*strength/100);
+      c.drawFastHLine(0,row,240,shade);
+    }
+    int top=int(band)*80;
+    c.drawFastHLine(16,52-top,208,accent);
+    c.fillRoundRect(28,65-top,184,148,18,accent);
+    c.fillRoundRect(31,68-top,178,142,16,ILI9341_BLACK);
+    if(!strcmp(icon,"balcony")) {
+      c.fillRect(90,92-top,60,60,0x34df);
+      c.fillCircle(135,107-top,9,ILI9341_YELLOW);
+      c.fillRect(75,170-top,90,4,0x07e0);
+    }
+    drawRoomIcon(c,icon,60,82-top,5,ILI9341_WHITE);
+    if(!band){drawLabel(c,"4VRS",16,12,accent);drawLabel(c,WebSettings::label("ПОМЕЩЕНИЕ","ROOM"),16,30,ILI9341_WHITE);}
     drawRoomTitle(c,band);
-    if(band==2){char count[32];snprintf(count,sizeof(count),"%s: %u",WebSettings::label("СУЩНОСТЕЙ","ENTITIES"),mqttFrame.areaCount);drawLabel(c,count,8,65,ILI9341_WHITE);}
+    if(band==3){char count[32];snprintf(count,sizeof(count),"%s: %u",WebSettings::label("СУЩНОСТЕЙ","ENTITIES"),mqttFrame.areaCount);drawLabel(c,count,16,65,accent);}
+    if(stale&&!band)drawLabel(c,WebSettings::label("УСТАРЕЛО","STALE"),140,12,ILI9341_ORANGE);
     return;
   }
   if(!band) {

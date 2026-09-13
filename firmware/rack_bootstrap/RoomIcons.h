@@ -1,4 +1,11 @@
 #pragma once
+static uint16_t roomAccent(const char *name) {
+  if(!strcmp(name,"balcony")||!strcmp(name,"garden"))return 0x4ee8;
+  if(!strcmp(name,"kitchen")||!strcmp(name,"garage"))return 0xfd20;
+  if(!strcmp(name,"bedroom")||!strcmp(name,"kids"))return 0xbb5f;
+  if(!strcmp(name,"living"))return 0xfaad;
+  return 0x35df;
+}
 // Original 24x24 line drawings; draw scaled on title cards or beside the room name.
 static void drawRoomIcon(GFXcanvas16 &c,const char *name,int x,int y,int s,uint16_t color) {
   auto line=[&](int a,int b,int d,int e){c.drawLine(x+a*s,y+b*s,x+d*s,y+e*s,color);};

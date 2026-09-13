@@ -52,6 +52,16 @@ constexpr bool twenty() {
   p=RackPages::makePlan<20>(s);
   return p.count==40&&p.pages[38].intro&&p.pages[39].first==19&&p.pages[39].count==1;
 }
+constexpr bool requestedCycle() {
+  struct Rooms { Card cards[16]{}; unsigned count=16; } s;
+  for(unsigned i=0;i<16;++i)s.cards[i].area=i<5?"Toilet":i<9?"Balcony":"Kitchen";
+  auto p=RackPages::makePlan<20>(s);
+  unsigned counts[]={0,3,2,0,3,1,0,3,3,1};
+  if(p.count!=10)return false;
+  for(unsigned i=0;i<10;++i)if(p.pages[i].count!=counts[i]||p.pages[i].intro!=(counts[i]==0))return false;
+  return p.pages[3].first==5&&p.pages[6].first==9;
+}
+static_assert(requestedCycle(),"Room cycle: title + 3/2, title + 3/1, title + 3/3/1");
 static_assert(twenty(),"Room pagination: 14 + 6 and 20 single rooms");
 static_assert(examples(),"Room pagination: 4 + 2 example");
 static_assert(exhaustive(),"Room pagination: every partition up to 12 cards");
