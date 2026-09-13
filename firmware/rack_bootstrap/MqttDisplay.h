@@ -11,6 +11,7 @@ static uint32_t mqttShownSeq=0;
 static RackMqtt::Snapshot mqttPaintSnapshot;
 static unsigned mqttPage=0, mqttFramePage=0;
 static uint32_t mqttPageStarted=0;
+static bool mqttPlannedCovers=true;
 static RackPages::Plan<RackMqtt::MAX_CARDS> mqttPlan;
 static RackPages::Page mqttFrame;
 
@@ -18,7 +19,7 @@ static uint32_t nextRune(const char *&p) {
   uint8_t c=(uint8_t)*p++;if(c<128)return c;unsigned n=(c&0xe0)==0xc0?1:(c&0xf0)==0xe0?2:3;
   uint32_t r=c&((1<<(6-n))-1);while(n--&&*p)r=(r<<6)|((uint8_t)*p++&63);return r;
 }
-static void drawLabel(GFXcanvas16 &c,const char *text,int x,int y,uint16_t color,int scale=1) {
+static void drawLabel(Adafruit_GFX &c,const char *text,int x,int y,uint16_t color,int scale=1) {
   // Hand-drawn 5x7 Cyrillic capital glyphs, also used for lowercase. Other
   // Unicode uses '?'; Latin, numbers and punctuation use Adafruit's built-in font.
   static const uint8_t ru[32][7]={
@@ -113,8 +114,8 @@ static void updateMqttDisplay() {
   // A frame is immutable while being painted. Live updates must not restart
   // either the frame or the page timer, otherwise busy entities starve page 2.
   if(mqttPaintRow>=320) {
-    bool layoutChanged=!mqttShowing||!RackPages::sameLayout(snapshot,mqttPaintSnapshot);
-    if(layoutChanged)mqttPlan=RackPages::makePlan<MAX_CARDS>(snapshot);
+    bool layoutChanged=!mqttShowing||mqttPlannedCovers!=WebSettings::roomCovers||!RackPages::sameLayout(snapshot,mqttPaintSnapshot);
+    if(layoutChanged){mqttPlannedCovers=WebSettings::roomCovers;mqttPlan=RackPages::makePlan<MAX_CARDS>(snapshot,mqttPlannedCovers);}
     if(!mqttPlan.count)return;
     if(layoutChanged||mqttPage>=mqttPlan.count){mqttPage=0;mqttPageStarted=millis();pageChanged=true;}
     else if(mqttPlan.count>1&&uint32_t(millis()-mqttPageStarted)>=RackPages::duration(mqttFrame)){mqttPage=(mqttPage+1)%mqttPlan.count;mqttPageStarted=millis();pageChanged=true;}

@@ -10,9 +10,9 @@
 
 Choose the entities in Home Assistant; the integration sends their states through MQTT, and the display groups them by room. Configure the device in your browser and update its firmware over Wi-Fi without removing it from its installation.
 
-**Stable firmware: 0.4.3 · Home Assistant integration: 0.4.0 · License: MIT**
+**Stable firmware: 0.4.4 · Home Assistant integration: 0.4.0 · License: MIT**
 
-[Download the release](https://github.com/dk-1983/4VRS-Display/releases/tag/firmware-v0.4.3) · [Report an issue](https://github.com/dk-1983/4VRS-Display/issues)
+[Download the release](https://github.com/dk-1983/4VRS-Display/releases/tag/firmware-v0.4.4) · [Report an issue](https://github.com/dk-1983/4VRS-Display/issues)
 
 ## Features
 
@@ -68,7 +68,7 @@ A touchscreen and microSD card are not required. GPIO signals use 3.3 V logic; f
 
 ## First setup
 
-1. Download `4vrs-display-0.4.3-factory.bin` from the release. For the initial UART installation, select **ESP32** in the Espressif flashing tool and write the factory image at **0x0**. This replaces data in the image's flash region; use OTA for an already configured device.
+1. Download `4vrs-display-0.4.4-factory.bin` from the release. For the initial UART installation, select **ESP32** in the Espressif flashing tool and write the factory image at **0x0**. This replaces data in the image's flash region; use OTA for an already configured device.
 2. Enter the board's bootloader mode, flash the image, wait for verification, then reset normally without holding BOOT/PGM.
 3. Connect to the setup Wi-Fi network `4vrs-rack-<id>-setup`. Its password is **`KIaE18TTn4Omp8H-0peXAk1i`**.
 4. Open **http://192.168.4.1/**, select your **2.4 GHz Wi-Fi** network and enter its password.
@@ -92,7 +92,7 @@ To edit the selection later, open **Settings → Devices & services → Integrat
 
 ## Firmware updates
 
-Use the **application image** `4vrs-display-0.4.3.bin` for OTA; the factory image is for initial UART installation. ArduinoOTA remains available on the local network, with an individual password configurable in **Settings → ArduinoOTA**.
+Use the **application image** `4vrs-display-0.4.4.bin` for OTA; the factory image is for initial UART installation. ArduinoOTA remains available on the local network, with an individual password configurable in **Settings → ArduinoOTA**.
 
 GitHub updates use a signed stable manifest. Before installation, the firmware checks the signature, hardware profile, version, image size and SHA-256 digest. It writes to the inactive application slot and validates the next boot, with rollback support for failed startup.
 
@@ -116,7 +116,7 @@ The next stages include GIF playback and 4VRS animations, user media on microSD,
 The build uses Arduino CLI, Arduino-ESP32 **3.3.8**, Adafruit GFX and Adafruit ILI9341 with their dependencies. Supply your Arduino CLI configuration file:
 
 ```sh
-python tools/build.py --config <arduino-cli.yaml> --version 0.4.3
+python tools/build.py --config <arduino-cli.yaml> --version 0.4.4
 ```
 
 Run the integration and release checks:
@@ -134,3 +134,11 @@ Bug reports and contributions are welcome. Include component versions, hardware 
 ## License
 
 Original project code and documentation are distributed under the [MIT License](LICENSE). Third-party libraries retain their own licenses.
+
+### Display and network preferences
+
+- **Settings → Show room covers** turns the room title/icon screens on or off. It defaults to on and survives reboot and OTA. Turning it off keeps the room name in each page header and never mixes rooms.
+- **About → Check display** reads controller registers and explains the result. Connect SDO/MISO to GPIO19 for readback; this checks communication, not the LCD glass or backlight.
+- **IPv4 settings** selects DHCP (default) or a static IP, subnet mask, gateway and two DNS servers. Gateway/DNS may be empty for an isolated LAN; GitHub updates require internet access and DNS. Use an unused address outside the dynamic pool or reserve it in your router. The setup AP subnet 192.168.4.0/24 is reserved.
+- Address changes are tried for three minutes. Open `/network` at the new LAN address and click **Confirm connection** to save. Without confirmation, or after a power cycle before confirmation, the previous settings return. Setup Wi-Fi remains available during the trial; firmware updates are paused until it ends. Configure Wi-Fi first when setting up a new board.
+- During firmware installation the TFT shows progress, followed by verification/restart. The first upgrade from an older firmware gains this screen only for subsequent updates.

@@ -15,6 +15,7 @@
 #include "WebLanguage.h"
 #include "SettingsPage.h"
 #include "MqttDisplay.h"
+#include "UpdateDisplay.h"
 #include "MqttPage.h"
 #include "WebPages.h"
 #include "UpdatePage.h"
@@ -22,7 +23,7 @@
 
 // Portrait ILI9341 demo with constant backlight and preserved Wi-Fi/OTA.
 #ifndef FOURVRS_VERSION
-#define FOURVRS_VERSION 0.4.1
+#define FOURVRS_VERSION 0.4.4
 #endif
 #define FOURVRS_STRING_INNER(x) #x
 #define FOURVRS_STRING(x) FOURVRS_STRING_INNER(x)
@@ -105,7 +106,10 @@ bool mqttAdmin() {
   if(web.authenticateWeb(WebSettings::config.username,WebSettings::config.password))return true;
   web.requestWebAuthentication();return false;
 }
+#include "Ipv4ConfigChecks.h"
+#include "NetworkSettings.h"
 void configureWeb() {
+  NetworkSettings::configureWeb();
   const char *headers[] = {"X-CSRF-Token"};
   web.collectHeaders(headers, 1);
   WebSettings::begin();
@@ -114,6 +118,23 @@ void configureWeb() {
     String page=FPSTR(SETTINGS_PAGE);page.replace("__TOKEN__",formToken);
     web.sendHeader("Cache-Control","no-store");
     web.send(200,"text/html; charset=utf-8",localizeWeb(page));
+  });
+  web.on("/settings/display",HTTP_GET,[](){
+    if(!mqttAdmin())return;
+    web.sendHeader("Cache-Control","no-store");
+    web.send(200,"application/json",WebSettings::roomCovers?"{\"room_covers\":true}":"{\"room_covers\":false}");
+  });
+  web.on("/settings/display",HTTP_POST,[](){
+    if(!mqttAdmin())return;
+    web.sendHeader("Cache-Control","no-store");
+    String body=web.arg("plain");cJSON *j=body.length()<=256?RackMqtt::parse(body.c_str(),body.length()):nullptr;
+    char token[65]{};
+    if(!j||!RackMqtt::textField(j,"token",token,sizeof(token))||formToken!=token){if(j)cJSON_Delete(j);web.send(403,"text/plain","Reload settings page.");return;}
+    const cJSON *value=cJSON_GetObjectItemCaseSensitive(j,"room_covers");
+    bool valid=cJSON_IsBool(value),enabled=cJSON_IsTrue(value);cJSON_Delete(j);
+    if(!valid){web.send(400,"text/plain","Expected room_covers boolean.");return;}
+    if(!WebSettings::saveRoomCovers(enabled)){web.send(503,"text/plain","Could not save settings.");return;}
+    RackMqtt::dirty=true;web.send(200,"application/json","{\"saved\":true}");
   });
   web.on("/settings/ota",HTTP_GET,[](){
     if(!mqttAdmin())return;
@@ -232,6 +253,7 @@ void configureWeb() {
   web.on("/wifi", HTTP_POST, []() {
     if (!portalRequest()) return;
     if (web.arg("token") != formToken) { web.send(403, "text/plain", "Reload setup page."); return; }
+    if (NetworkSettings::trial) {web.send(409,"text/plain","Finish the IPv4 trial first.");return;}
     if (savePending) { web.send(409, "text/plain", "Connection request pending."); return; }
     if (scanRunning) { web.send(409,"text/plain; charset=utf-8","Дождитесь завершения поиска сетей.");return; }
     String s = web.arg("ssid"), p = web.arg("password");
@@ -270,9 +292,21 @@ void configureOta() {
   ArduinoOTA.setPort(3232);
   ArduinoOTA.setPassword(DeviceCredentials::config.ota);
   ArduinoOTA.setTimeout(10000);
-  ArduinoOTA.onStart([]() { Serial.println("OTA started"); });
-  ArduinoOTA.onEnd([]() { Serial.println("OTA complete; restarting"); });
+  ArduinoOTA.onStart([]() {
+    RackUpdate::manual=true;
+    UpdateDisplay::show(RackUpdate::ScreenStage::Downloading,0);
+    Serial.println("OTA started");
+  });
+  ArduinoOTA.onProgress([](unsigned int done,unsigned int total) {
+    UpdateDisplay::show(RackUpdate::ScreenStage::Downloading,total?unsigned(uint64_t(done)*100/total):0);
+  });
+  ArduinoOTA.onEnd([]() {
+    UpdateDisplay::show(RackUpdate::ScreenStage::Restarting,100);
+    Serial.println("OTA complete; restarting");
+  });
   ArduinoOTA.onError([](ota_error_t error) {
+    RackUpdate::manual=false;
+    if(error!=OTA_AUTH_ERROR)UpdateDisplay::show(RackUpdate::ScreenStage::Error,0);
     Serial.printf("OTA error: %u\n", unsigned(error));
     // Ошибочный пароль не должен позволять удалённо перезагружать устройство.
     if (error != OTA_AUTH_ERROR) { restartPending = true; restartAt = millis(); }
@@ -314,15 +348,17 @@ void setup() {
       disconnectReason=info.wifi_sta_disconnected.reason;
       Serial.printf("[wifi] disconnected reason=%u\n", unsigned(info.wifi_sta_disconnected.reason));
     }
-    else if (event == ARDUINO_EVENT_WIFI_STA_CONNECTED) Serial.println("[wifi] associated; waiting for DHCP");
-    else if (event == ARDUINO_EVENT_WIFI_STA_GOT_IP) Serial.println("[wifi] DHCP address received");
+    else if (event == ARDUINO_EVENT_WIFI_STA_CONNECTED) Serial.println("[wifi] associated; waiting for IP");
+    else if (event == ARDUINO_EVENT_WIFI_STA_GOT_IP) Serial.println("[wifi] IP address received");
   });
+  if(!NetworkSettings::load())Serial.println("Invalid IPv4 settings; using DHCP");
   traceBoot("NVS: config read, before persistent(false)");
   WiFi.persistent(false);
   traceBoot("WiFi: before hostname");
   WiFi.setHostname(hostname.c_str());
   traceBoot("WiFi: before mode STA");
   WiFi.mode(WIFI_STA);
+  if(!NetworkSettings::apply(NetworkSettings::saved))Serial.println("IPv4 configuration failed");
   traceBoot("WiFi: before autoReconnect");
   WiFi.setAutoReconnect(false); // Повторными попытками управляет только loop().
   traceBoot("WiFi: before setSleep(false)");
@@ -355,6 +391,7 @@ void loop() {
     delay(1); return;
   }
   web.handleClient();
+  NetworkSettings::tick();
   finishScan();
   if (savePending) {
     savePending = false;
@@ -386,7 +423,7 @@ void loop() {
       ArduinoOTA.begin(); otaActive = true;
       Serial.printf("OTA ready: %s.local:3232\n", hostname.c_str());
     }
-    if (radioApEnabled() && !scanRunning && uint32_t(now - connectedSince) >= 15000 && uint32_t(now-lastApStopAttempt)>=1000) {
+    if (radioApEnabled() && !NetworkSettings::trial && !scanRunning && uint32_t(now - connectedSince) >= 15000 && uint32_t(now-lastApStopAttempt)>=1000) {
       lastApStopAttempt=now;
       // Не очищаем AP-конфигурацию перед остановкой. Проверяем реальный режим радио,
       // чтобы не потерять повторную попытку из-за ошибочного программного флага.
@@ -409,8 +446,7 @@ void loop() {
     }
   }
   RackMqtt::tick();
-  if(RackUpdate::busy){if(mqttCanvas){delete mqttCanvas;mqttCanvas=nullptr;}mqttShowing=false;mqttPaintRow=320;RackUpdate::canvasReleased=true;}
-  else updateMqttDisplay();
+  if(!UpdateDisplay::tick())updateMqttDisplay();
   RackUpdate::tick(WebSettings::ready&&displayStarted&&RackMqtt::rxQueue,connected);
   delay(2);
 }

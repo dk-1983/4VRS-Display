@@ -13,6 +13,13 @@
 #include "UpdateCertificates.h"
 
 namespace RackUpdate {
+enum class ScreenStage : unsigned { Idle, Checking, Downloading, Verifying, Restarting, Error, Blocked };
+static std::atomic<ScreenStage> screenStage{ScreenStage::Idle};
+static std::atomic<uint32_t> downloadBytes{0},downloadSize{0};
+inline unsigned downloadPercent() {
+  const uint32_t total=downloadSize.load(),done=downloadBytes.load();
+  return total?unsigned(std::min<uint64_t>(100,uint64_t(done)*100/total)):0;
+}
 static constexpr char PROFILE[]="nadim-v5-ili9341-4m-v1";
 #ifdef FOURVRS_TEST_FEED
 static constexpr char FEED[]="https://raw.githubusercontent.com/dk-1983/4VRS-Display/main/releases/testing.json";
@@ -35,6 +42,12 @@ static uint32_t bootStart=0,healthySince=0;
 static bool pendingBoot=false,storageReady=false;
 
 inline void state(const char *p,const char *e="") {
+  screenStage=!strcmp(p,"checking")?ScreenStage::Checking:
+    !strcmp(p,"downloading")?ScreenStage::Downloading:
+    !strcmp(p,"verifying")?ScreenStage::Verifying:
+    !strcmp(p,"restarting")?ScreenStage::Restarting:
+    !strcmp(p,"error")?ScreenStage::Error:
+    !strcmp(p,"blocked")?ScreenStage::Blocked:ScreenStage::Idle;
   xSemaphoreTake(mutex,portMAX_DELAY);strlcpy(phase,p,sizeof(phase));strlcpy(error,e,sizeof(error));xSemaphoreGive(mutex);++changes;
 }
 inline bool permitted() {return webEnabled&&haEnabled&&(!managed||int32_t(leaseUntil.load()-millis())>0);}
@@ -133,7 +146,7 @@ inline void install(const Manifest &m) {
   // Erase sectors as they are written; bulk erase can starve the task watchdog.
   traceStage=50;stackFree=uxTaskGetStackHighWaterMark(nullptr);
   if(esp_ota_begin(partition,OTA_WITH_SEQUENTIAL_WRITES,&handle)!=ESP_OK){esp_http_client_cleanup(h);state("error","ota_begin");return;}
-  state("downloading");
+  downloadSize=m.size;downloadBytes=0;state("downloading");
   mbedtls_sha256_context sha;mbedtls_sha256_init(&sha);mbedtls_sha256_starts(&sha,0);
   unsigned char buffer[1024];uint32_t total=0;bool ok=true;
   while(total<m.size) {
@@ -146,7 +159,7 @@ inline void install(const Manifest &m) {
     }
     traceStage=60;
     if(esp_ota_write(handle,buffer,n)!=ESP_OK){ok=false;break;}
-    mbedtls_sha256_update(&sha,buffer,n);total+=n;vTaskDelay(1);
+    mbedtls_sha256_update(&sha,buffer,n);total+=n;downloadBytes=total;vTaskDelay(1);
   }
   unsigned char digest[32];char actual[65];mbedtls_sha256_finish(&sha,digest);mbedtls_sha256_free(&sha);hex(digest,32,actual);
   ok=ok&&total==m.size&&!strcmp(actual,m.sha)&&esp_http_client_is_complete_data_received(h);esp_http_client_cleanup(h);
@@ -172,7 +185,7 @@ inline void worker(void *) {
     checkRequested=false;next=millis()+21600000+(esp_random()%60000);
     if(xSemaphoreTake(flashGate,0)!=pdTRUE)continue;
     bool expected=false;if(!busy.compare_exchange_strong(expected,true)){xSemaphoreGive(flashGate);continue;}
-    canvasReleased=false;
+    downloadBytes=0;downloadSize=0;canvasReleased=false;
     while(!canvasReleased)vTaskDelay(pdMS_TO_TICKS(10));
     state("checking");Manifest manifest;
     if(fetchManifest(manifest)) {
@@ -212,6 +225,9 @@ inline void tick(bool localHealthy,bool connected) {
 }
 inline String status() {
   cJSON *j=cJSON_CreateObject();
+  cJSON_AddNumberToObject(j,"download_bytes",downloadBytes.load());
+  cJSON_AddNumberToObject(j,"download_size",downloadSize.load());
+  cJSON_AddNumberToObject(j,"download_percent",downloadPercent());
   cJSON_AddNumberToObject(j,"reset_reason",esp_reset_reason());cJSON_AddNumberToObject(j,"previous_update_stage",previousTrace);cJSON_AddNumberToObject(j,"update_stage",traceStage);cJSON_AddNumberToObject(j,"worker_stack_free",stackFree);
   cJSON_AddNumberToObject(j,"epoch",(double)time(nullptr));cJSON_AddNumberToObject(j,"largest_internal_block",heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL|MALLOC_CAP_8BIT));cJSON_AddNumberToObject(j,"http_status",httpCode);cJSON_AddNumberToObject(j,"transport_error",transportCode);cJSON_AddNumberToObject(j,"tls_error",tlsCode);cJSON_AddNumberToObject(j,"tls_flags",tlsFlags);
   cJSON_AddStringToObject(j,"installed",installed);cJSON_AddBoolToObject(j,"web_enabled",webEnabled);cJSON_AddBoolToObject(j,"ha_enabled",haEnabled);cJSON_AddBoolToObject(j,"ha_managed",managed);cJSON_AddNumberToObject(j,"revision",settings.revision);cJSON_AddBoolToObject(j,"effective_enabled",permitted());cJSON_AddBoolToObject(j,"boot_confirmed",bootConfirmed);cJSON_AddBoolToObject(j,"busy",busy);

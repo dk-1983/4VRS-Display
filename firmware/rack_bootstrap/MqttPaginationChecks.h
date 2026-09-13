@@ -61,6 +61,22 @@ constexpr bool requestedCycle() {
   for(unsigned i=0;i<10;++i)if(p.pages[i].count!=counts[i]||p.pages[i].intro!=(counts[i]==0))return false;
   return p.pages[3].first==5&&p.pages[6].first==9;
 }
+constexpr bool withoutCovers() {
+  struct Rooms { Card cards[20]{}; unsigned count=16; } s;
+  for(unsigned i=0;i<16;++i)s.cards[i].area=i<5?"A":i<9?"B":"C";
+  auto p=RackPages::makePlan<20>(s,false);
+  unsigned counts[]={3,2,3,1,3,3,1};
+  if(p.count!=7)return false;
+  unsigned seen=0;
+  for(unsigned i=0;i<p.count;++i){auto page=p.pages[i];
+    if(page.intro||page.count!=counts[i]||page.first!=seen)return false;
+    for(unsigned n=0;n<page.count;++n)if(!RackPages::sameArea(s,page.areaFirst,page.first+n))return false;
+    seen+=page.count;
+  }
+  if(seen!=16||p.pages[2].number!=1||p.pages[4].total!=3)return false;
+  s.count=0;return RackPages::makePlan<20>(s,false).count==0;
+}
+static_assert(withoutCovers(),"No covers: 3/2, 3/1, 3/3/1 without mixed rooms");
 static_assert(requestedCycle(),"Room cycle: title + 3/2, title + 3/1, title + 3/3/1");
 static_assert(twenty(),"Room pagination: 14 + 6 and 20 single rooms");
 static_assert(examples(),"Room pagination: 4 + 2 example");

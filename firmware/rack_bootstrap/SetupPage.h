@@ -1,7 +1,7 @@
 #pragma once
 static const char SETUP_PAGE[] PROGMEM = R"HTML(<!doctype html><html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>4VRS — Wi-Fi</title><style>body{font:18px system-ui;max-width:540px;margin:32px auto;padding:16px;background:#101827;color:#eff6ff}input,select,button{font:inherit;box-sizing:border-box;width:100%;padding:12px;margin:6px 0 16px;border-radius:8px}button{background:#6ac8ff;border:0;cursor:pointer}a{color:#6ac8ff}small{color:#bbcadb}#status{white-space:pre-wrap}</style>
-<h1>4VRS · Wi-Fi</h1><small>Выберите сеть 2,4 ГГц. Для скрытой сети введите имя вручную.</small>
+<h1>4VRS · Wi-Fi</h1><p><a href="/network">IPv4 · DHCP / Static</a></p><small>Выберите сеть 2,4 ГГц. Для скрытой сети введите имя вручную.</small>
 <button id="scan" type="button">Найти сети</button><div id="scanStatus" role="status"></div><select id="networks" aria-label="Найденные сети"><option value="">Выберите сеть</option></select>
 <form id="form"><label>Имя сети (SSID)<input id="ssid" name="ssid" maxlength="32" required></label><label>Пароль сети<input name="password" type="password" maxlength="63" autocomplete="new-password"></label><button id="connect">Подключить</button></form>
 <p id="status" role="status">Чтение состояния…</p><a id="address" hidden></a>

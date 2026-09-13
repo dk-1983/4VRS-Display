@@ -13,3 +13,9 @@ jobs:
       - run: pip install jsonschema==4.23.0 -r tools/requirements-release.txt
       - run: python -m unittest discover -s home_assistant/tests -v
       - run: python tools/test_release.py
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: node tools/test_display_ui.mjs
+      - run: node tools/test_settings_ui.mjs
+      - run: g++ -std=c++17 tools/test_ipv4.cpp -o /tmp/test_ipv4 && /tmp/test_ipv4
