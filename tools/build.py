@@ -11,7 +11,7 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--cli',default='C:/Program Files/Arduino IDE/resources/app/lib/backend/resources/arduino-cli.exe')
     p.add_argument('--config',type=Path)
-    p.add_argument('--version',default='0.4.2')
+    p.add_argument('--version',default='0.4.3')
     p.add_argument('--output',type=Path,default=ROOT/'build/firmware')
     p.add_argument('--migrate-credentials',action='store_true',help='PRIVATE one-time migration; never publish this binary')
     p.add_argument('--test-fail-boot',action='store_true',help='PRIVATE rollback test; never publish this binary')
