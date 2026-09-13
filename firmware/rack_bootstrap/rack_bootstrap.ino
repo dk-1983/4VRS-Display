@@ -10,13 +10,16 @@
 #include "BacklightTest.h"
 #include "DisplayDemo.h"
 #include "MqttService.h"
+#include "WebSettings.h"
+#include "WebLanguage.h"
+#include "SettingsPage.h"
 #include "MqttDisplay.h"
 #include "MqttPage.h"
 #include "WebPages.h"
 
 
 // Portrait ILI9341 demo with constant backlight and preserved Wi-Fi/OTA.
-static constexpr char VERSION[] = "0.2.1-web";
+static constexpr char VERSION[] = "0.2.3-settings";
 static constexpr uint32_t RETRY_MS = 30000, FALLBACK_MS = 60000;
 static_assert(sizeof(SETUP_PASSWORD) >= 13 && sizeof(SETUP_PASSWORD) <= 64,
               "Use a setup password of 12..63 ASCII characters");
@@ -88,19 +91,47 @@ void showSetup() {
   if (!portalRequest()) return;
   web.sendHeader("Cache-Control", "no-store");
   String page=FPSTR(SETUP_PAGE); page.replace("__TOKEN__", formToken);
-  web.send(200, "text/html; charset=utf-8",page);
+  web.send(200, "text/html; charset=utf-8",localizeWeb(page));
 }
 
+// Web credentials are separate from OTA, as requested by the device owner.
 bool mqttAdmin() {
-  if(web.authenticate("admin",OTA_PASSWORD))return true;
+  if(!WebSettings::ready){web.send(503,"text/plain","Web settings unavailable.");return false;}
+  if(web.authenticate(WebSettings::config.username,WebSettings::config.password))return true;
   web.requestAuthentication(DIGEST_AUTH,"4VRS Display");return false;
 }
 void configureWeb() {
+  WebSettings::begin();
+  web.on("/settings",HTTP_GET,[](){
+    if(!mqttAdmin())return;
+    String page=FPSTR(SETTINGS_PAGE);page.replace("__TOKEN__",formToken);
+    web.sendHeader("Cache-Control","no-store");
+    web.send(200,"text/html; charset=utf-8",localizeWeb(page));
+  });
+  web.on("/settings/config",HTTP_GET,[](){
+    if(!mqttAdmin())return;
+    web.sendHeader("Cache-Control","no-store");
+    web.send(200,"application/json",String("{\"username\":")+jsonString(WebSettings::config.username)+",\"language\":"+jsonString(WebSettings::config.language)+"}");
+  });
+  web.on("/settings/config",HTTP_POST,[](){
+    if(!mqttAdmin())return;
+    web.sendHeader("Cache-Control","no-store");
+    String body=web.arg("plain");cJSON *j=body.length()<=1024?RackMqtt::parse(body.c_str(),body.length()):nullptr;
+    char token[65]{};WebSettings::Config next=WebSettings::config;
+    if(!j||!RackMqtt::textField(j,"token",token,sizeof(token))||formToken!=token){if(j)cJSON_Delete(j);web.send(403,"text/plain","Reload settings page.");return;}
+    bool valid=RackMqtt::textField(j,"username",next.username,sizeof(next.username))&&RackMqtt::textField(j,"language",next.language,sizeof(next.language));
+    if(cJSON_HasObjectItem(j,"password"))valid=valid&&RackMqtt::textField(j,"password",next.password,sizeof(next.password));
+    cJSON_Delete(j);
+    if(!valid||!WebSettings::valid(next)){web.send(400,"text/plain",WebSettings::label("Проверьте логин, пароль и язык.","Check username, password and language."));return;}
+    if(!WebSettings::save(next)){web.send(503,"text/plain","Could not save settings.");return;}
+    RackMqtt::dirty=true;
+    web.send(200,"application/json","{\"saved\":true}");
+  });
   web.on("/mqtt",HTTP_GET,[](){
     if(!mqttAdmin())return;
     web.sendHeader("Cache-Control","no-store");
     String page=FPSTR(MQTT_PAGE);page.replace("__TOKEN__",formToken);page.replace("__VERSION__",VERSION);
-    web.send(200,"text/html; charset=utf-8",page);
+    web.send(200,"text/html; charset=utf-8",localizeWeb(page));
   });
   web.on("/mqtt/config",HTTP_GET,[](){if(!mqttAdmin())return;web.sendHeader("Cache-Control","no-store");web.send(200,"application/json",RackMqtt::publicConfig());});
   web.on("/mqtt/status",HTTP_GET,[](){if(!mqttAdmin())return;web.sendHeader("Cache-Control","no-store");web.send(200,"application/json",RackMqtt::status());});
@@ -137,12 +168,12 @@ void configureWeb() {
   web.on("/", HTTP_GET, []() {
     if (apActive && web.client().localIP() == WiFi.softAPIP()) { showSetup(); return; }
     web.sendHeader("Cache-Control", "no-store");
-    web.send_P(200, "text/html; charset=utf-8", HOME_PAGE);
+    web.send(200, "text/html; charset=utf-8", localizeWeb(String(FPSTR(HOME_PAGE))));
   });
   web.on("/about", HTTP_GET, []() {
     web.sendHeader("Cache-Control", "no-store");
     String page=FPSTR(ABOUT_PAGE);page.replace("__VERSION__",VERSION);
-    web.send(200,"text/html; charset=utf-8",page);
+    web.send(200,"text/html; charset=utf-8",localizeWeb(page));
   });
   web.on("/wifi", HTTP_GET, showSetup);
   web.on("/wifi", HTTP_POST, []() {

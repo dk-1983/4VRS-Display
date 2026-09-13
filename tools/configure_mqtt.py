@@ -19,7 +19,8 @@ def main():
         parser.error('Expected a local IP or hostname')
     try:
         values = json.loads(args.settings.read_text(encoding='utf-8-sig'))
-        password = json.loads(args.access.read_text(encoding='utf-8-sig'))['ota_password']
+        access = json.loads(args.access.read_text(encoding='utf-8-sig')) if args.access.exists() else {}
+        password = access.get('web_password', 'admin')
         config = {k: values[k] for k in ('host', 'port', 'username', 'password', 'ca') if k in values}
         config.setdefault('host', '')
         config.setdefault('port', 1883)
@@ -29,7 +30,7 @@ def main():
             config['ca'] = (args.settings.parent / values['ca_file']).read_text(encoding='ascii')
         base = 'http://' + args.ip
         manager = urllib.request.HTTPPasswordMgrWithDefaultRealm()
-        manager.add_password(None, base, 'admin', password)
+        manager.add_password(None, base, access.get('web_username', 'admin'), password)
         http = urllib.request.build_opener(urllib.request.ProxyHandler({}), urllib.request.HTTPDigestAuthHandler(manager))
         with http.open(base + '/mqtt', timeout=10) as reply:
             page = reply.read().decode()
