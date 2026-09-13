@@ -4,8 +4,8 @@
 #include <math.h>
 
 namespace RackMqtt {
-constexpr size_t MAX_PAYLOAD = 4096;
-constexpr unsigned MAX_CARDS = 3;
+constexpr size_t MAX_PAYLOAD = 8192;
+constexpr unsigned MAX_CARDS = 12;
 struct Card { char id[97]{}, name[97]{}, kind[17]{}, state[97]{}, unit[17]{}; };
 struct Snapshot { Card cards[MAX_CARDS]; unsigned count=0; uint32_t seq=0, ttl=90, received=0; bool valid=false; };
 

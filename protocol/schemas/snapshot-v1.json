@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "4VRS snapshot protocol v1 (first-data milestone)",
+  "title": "4VRS snapshot v1 (12-card capability)",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -37,7 +37,7 @@
     "cards": {
       "type": "array",
       "minItems": 1,
-      "maxItems": 3,
+      "maxItems": 12,
       "items": {
         "type": "object",
         "additionalProperties": false,

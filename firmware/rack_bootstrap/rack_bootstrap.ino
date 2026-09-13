@@ -19,7 +19,7 @@
 
 
 // Portrait ILI9341 demo with constant backlight and preserved Wi-Fi/OTA.
-static constexpr char VERSION[] = "0.2.6-droplets";
+static constexpr char VERSION[] = "0.3.0-entities";
 static constexpr uint32_t RETRY_MS = 30000, FALLBACK_MS = 60000;
 static_assert(sizeof(SETUP_PASSWORD) >= 13 && sizeof(SETUP_PASSWORD) <= 64,
               "Use a setup password of 12..63 ASCII characters");
@@ -149,6 +149,11 @@ void configureWeb() {
   });
 
 
+  web.on("/display/pages",HTTP_GET,[](){
+    if(!mqttAdmin())return;
+    web.sendHeader("Cache-Control","no-store");
+    web.send(200,"application/json",String("{\"page\":")+String(mqttFramePage+1)+",\"pages\":"+String(RackMqtt::snapshot.count>3?RackMqtt::snapshot.count-2:1)+",\"cards_per_page\":3,\"interval_ms\":8000}");
+  });
   web.on("/display", HTTP_GET, [](){ web.sendHeader("Cache-Control", "no-store"); web.send(200, "application/json", displayStatus()); });
   web.on("/backlight", HTTP_GET, [](){ web.sendHeader("Cache-Control", "no-store"); web.send(200, "application/json", backlightStatus()); });
   web.on("/scan", HTTP_POST, [](){

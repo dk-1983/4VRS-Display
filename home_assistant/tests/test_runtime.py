@@ -60,7 +60,7 @@ class RuntimeTests(unittest.IsolatedAsyncioTestCase):
                 sys.modules[name] = value
 
     async def connect(self, session='a'*32):
-        caps = {'schema': 1, 'device_id': 'test', 'session': session, 'max_cards': 3, 'request_id': self.runtime.request_id}
+        caps = {'schema': 1, 'device_id': 'test', 'session': session, 'max_cards': 12, 'request_id': self.runtime.request_id}
         await self.runtime.capabilities(types.SimpleNamespace(payload=json.dumps(caps)))
 
     async def test_requires_handshake_and_sends_nonretained_snapshot(self):

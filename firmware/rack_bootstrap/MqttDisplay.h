@@ -7,6 +7,10 @@ static bool mqttShowing=false, mqttWasStale=false;
 static uint16_t mqttPaintRow=320;
 static uint32_t mqttShownSeq=0;
 static RackMqtt::Snapshot mqttPaintSnapshot;
+static unsigned mqttPage=0, mqttFramePage=0;
+static uint32_t mqttPageStarted=0;
+static constexpr uint32_t MQTT_PAGE_MS=8000;
+static constexpr unsigned MQTT_CARDS_PER_PAGE=3;
 
 static uint32_t nextRune(const char *&p) {
   uint8_t c=(uint8_t)*p++;if(c<128)return c;unsigned n=(c&0xe0)==0xc0?1:(c&0xf0)==0xe0?2:3;
@@ -38,12 +42,13 @@ static void renderMqttBand(unsigned band,bool stale) {
   using namespace RackMqtt;
   auto &c=*mqttCanvas;c.fillScreen(ILI9341_BLACK);
   if(!band) {
-    drawLabel(c,"4VRS / HOME ASSISTANT",8,7,ILI9341_CYAN);
+    char heading[40];snprintf(heading,sizeof(heading),"4VRS / HA %u-%u / %u",mqttFramePage+1,std::min(mqttFramePage+3,mqttPaintSnapshot.count),mqttPaintSnapshot.count);
+    drawLabel(c,heading,8,7,ILI9341_CYAN);
     drawLabel(c,connected?"MQTT ONLINE":"MQTT OFFLINE",8,23,connected?ILI9341_GREEN:ILI9341_ORANGE);
     drawLabel(c,stale?WebSettings::label("ДАННЫЕ УСТАРЕЛИ","DATA STALE"):WebSettings::label("ДАННЫЕ ПОЛУЧЕНЫ","DATA RECEIVED"),8,39,stale?ILI9341_ORANGE:ILI9341_WHITE);
     drawLabel(c,WiFi.localIP().toString().c_str(),8,57,ILI9341_DARKGREY);
-  } else if(band<=mqttPaintSnapshot.count) {
-    const auto &card=mqttPaintSnapshot.cards[band-1];bool unavailable=!strcmp(card.state,"unavailable"),unknown=!strcmp(card.state,"unknown");
+  } else if(mqttFramePage+band<=mqttPaintSnapshot.count) {
+    const auto &card=mqttPaintSnapshot.cards[mqttFramePage+band-1];bool unavailable=!strcmp(card.state,"unavailable"),unknown=!strcmp(card.state,"unknown");
     bool on=!strcmp(card.state,"on")||!strcmp(card.state,"open")||!strcmp(card.state,"opening");
     const char *icon=cardIcon(card);
     uint16_t color=ILI9341_CYAN;
@@ -62,10 +67,18 @@ static void renderMqttBand(unsigned band,bool stale) {
 }
 static void updateMqttDisplay() {
   using namespace RackMqtt;
-  if(!config.enabled||!snapshot.valid){if(mqttShowing){displayRow=0;mqttShowing=false;}mqttPaintRow=320;updateDisplayDemo();return;}
+  if(!config.enabled||!snapshot.valid){if(mqttShowing){displayRow=0;mqttShowing=false;}mqttPaintRow=320;mqttPage=0;mqttPageStarted=millis();updateDisplayDemo();return;}
   if(!mqttCanvas){mqttCanvas=new GFXcanvas16(240,80);if(!mqttCanvas||!mqttCanvas->getBuffer()){delete mqttCanvas;mqttCanvas=nullptr;updateDisplayDemo();return;}}
   bool stale=!connected||sequence==0||uint32_t(millis()-snapshot.received)>snapshot.ttl*1000;
-  if(mqttPaintRow>=320&&(!mqttShowing||dirty||mqttShownSeq!=snapshot.seq||mqttWasStale!=stale)){mqttPaintRow=0;mqttShowing=true;dirty=false;mqttShownSeq=snapshot.seq;mqttWasStale=stale;mqttPaintSnapshot=snapshot;}
+  unsigned pages=snapshot.count>MQTT_CARDS_PER_PAGE?snapshot.count-MQTT_CARDS_PER_PAGE+1:1;
+  bool pageChanged=false;
+  // A frame is immutable while being painted. Live updates must not restart
+  // either the frame or the page timer, otherwise busy entities starve page 2.
+  if(mqttPaintRow>=320) {
+    if(!mqttShowing||mqttPage>=pages){mqttPage=0;mqttPageStarted=millis();pageChanged=true;}
+    else if(pages>1&&uint32_t(millis()-mqttPageStarted)>=MQTT_PAGE_MS){mqttPage=(mqttPage+1)%pages;mqttPageStarted=millis();pageChanged=true;}
+    if(!mqttShowing||dirty||mqttShownSeq!=snapshot.seq||mqttWasStale!=stale||pageChanged){mqttPaintRow=0;mqttShowing=true;dirty=false;mqttShownSeq=snapshot.seq;mqttWasStale=stale;mqttPaintSnapshot=snapshot;mqttFramePage=mqttPage;}
+  }
   if(mqttPaintRow>=320)return;
   unsigned row=mqttPaintRow%80;
   if(row==0)renderMqttBand(mqttPaintRow/80,mqttWasStale);

@@ -2,14 +2,14 @@
 import json
 import re
 
-MAX_CARDS = 3
-MAX_PAYLOAD = 4096
+MAX_CARDS = 12
+MAX_PAYLOAD = 8192
 KINDS = {"fan", "light", "valve", "sensor", "binary_sensor", "switch"}
 
 
 def validate_selection(entities):
     if not isinstance(entities, list) or not 1 <= len(entities) <= MAX_CARDS:
-        raise ValueError("Select between one and three entities")
+        raise ValueError("Select between one and twelve entities")
     if any(not isinstance(e, str) or len(e) > 96 or not re.fullmatch(r"[a-z][a-z0-9_]*\.[a-z0-9_]+", e) for e in entities):
         raise ValueError("Invalid entity id")
     if len(set(entities)) != len(entities):

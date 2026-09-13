@@ -38,6 +38,20 @@ class PayloadTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 self.encode(entities)
 
+    def test_twelve_cards_keep_order_and_fit_maximum_text(self):
+        entities = ['sensor.' + str(i) + 'x'*80 for i in range(12)]
+        source = SimpleNamespace(state='"'*96, attributes={'friendly_name': '"'*96, 'unit_of_measurement': '"'*16})
+        encoded = payload.encode_snapshot('a'*32, 'b'*32, 1, entities, lambda _: source)
+        self.assertLessEqual(len(encoded.encode()), 8192)
+        self.assertEqual([c['id'] for c in json.loads(encoded)['cards']], entities)
+        with self.assertRaises(ValueError):
+            self.encode(entities + ['sensor.extra'])
+
+    def test_old_firmware_capacity_is_rejected(self):
+        caps = {'schema': 1, 'device_id': 'test', 'session': 'a'*32, 'max_cards': 3}
+        with self.assertRaises(ValueError):
+            payload.decode_capabilities(json.dumps(caps), 'test')
+
     def test_invalid_session_and_sequence(self):
         for seq in (0, -1, True, 2**32):
             with self.assertRaises(ValueError):
@@ -46,7 +60,7 @@ class PayloadTests(unittest.TestCase):
             payload.encode_snapshot('retained-old-session', 'b'*32, 1, ['sensor.a'], lambda _: None)
 
     def test_handshake_requires_device_and_challenge(self):
-        caps = {'schema': 1, 'device_id': 'test', 'session': 'a'*32, 'max_cards': 3, 'request_id': 'challenge'}
+        caps = {'schema': 1, 'device_id': 'test', 'session': 'a'*32, 'max_cards': 12, 'request_id': 'challenge'}
         self.assertEqual(payload.decode_capabilities(json.dumps(caps), 'test', 'challenge'), caps)
         for device, challenge in [('other', 'challenge'), ('test', 'old')]:
             with self.assertRaises(ValueError):

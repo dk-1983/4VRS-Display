@@ -132,7 +132,7 @@ inline void tick() {
         capabilities(requestId);
       } else {++rejected;strlcpy(lastError,"request",sizeof(lastError));}
     } else {
-      Snapshot next;const char *error=decodeSnapshot(root,session,sequence,next);
+      static Snapshot next;next={};const char *error=decodeSnapshot(root,session,sequence,next);
       cJSON *ack=cJSON_CreateObject();cJSON_AddNumberToObject(ack,"schema",1);cJSON_AddStringToObject(ack,"session",session);
       if(error){++rejected;strlcpy(lastError,error,sizeof(lastError));cJSON_AddStringToObject(ack,"status","rejected");cJSON_AddStringToObject(ack,"error",error);}
       else {next.received=millis();snapshot=next;sequence=next.seq;++accepted;dirty=true;lastError[0]=0;cJSON_AddStringToObject(ack,"status","accepted");}
