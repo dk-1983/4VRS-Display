@@ -53,7 +53,7 @@ static void renderMqttBand(unsigned band,bool stale) {
     else if(on)color=ILI9341_GREEN;
     if(stale||unavailable||unknown)color=ILI9341_DARKGREY;
     drawLabel(c,card.name,8,6,ILI9341_WHITE);
-    drawCardIcon(c,icon,color,on,unavailable||unknown);
+    drawCardIcon(c,icon,color,on,unavailable||unknown,stale);
     const char *state=unavailable?WebSettings::label("НЕДОСТУПНО","UNAVAILABLE"):unknown?WebSettings::label("НЕИЗВЕСТНО","UNKNOWN"):card.state;
     drawLabel(c,state,47,31,color,strlen(state)<15?2:1);
     drawLabel(c,card.unit,48,55,ILI9341_WHITE);

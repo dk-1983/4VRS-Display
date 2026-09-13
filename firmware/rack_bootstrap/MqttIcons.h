@@ -30,14 +30,21 @@ inline const char *cardIcon(const Card &c) {
   }return "text";
 }
 }
-static void drawCardIcon(GFXcanvas16 &c,const char *icon,uint16_t color,bool on,bool unavailable) {
+static void drawCardIcon(GFXcanvas16 &c,const char *icon,uint16_t color,bool on,bool unavailable,bool stale) {
   if(!strcmp(icon,"temperature")) {
     c.drawRoundRect(15,27,12,25,6,color);c.fillRect(18,32,6,22,color);
     c.fillCircle(21,54,9,color);c.drawFastHLine(30,32,6,color);c.drawFastHLine(30,39,4,color);c.drawFastHLine(30,46,6,color);
   } else if(!strcmp(icon,"humidity")||!strcmp(icon,"leak")) {
     c.fillTriangle(21,27,9,46,33,46,color);c.fillCircle(21,47,12,color);
-    c.drawLine(14,46,13,49,ILI9341_BLACK);c.drawLine(13,49,16,53,ILI9341_BLACK);
-    if(!strcmp(icon,"leak")){c.drawFastHLine(7,64,10,color);c.drawFastHLine(22,64,14,color);if(on){c.fillRect(20,36,3,12,ILI9341_BLACK);c.fillCircle(21,53,2,ILI9341_BLACK);}}
+    if(!strcmp(icon,"humidity")) {
+      // Cut a percent sign into the filled droplet, matching the user's reference.
+      c.fillCircle(17,41,2,ILI9341_BLACK);c.fillCircle(25,51,2,ILI9341_BLACK);
+      c.drawLine(15,52,27,40,ILI9341_BLACK);c.drawLine(16,53,28,41,ILI9341_BLACK);
+    } else if(!on&&!unavailable&&!stale) {
+      // Dry is an explicit known off state; unknown/stale must not look safe.
+      for(int d=-2;d<=2;d++)c.drawLine(5,28+d,37,61+d,ILI9341_BLACK);
+      c.drawLine(5,28,37,61,color);c.drawLine(5,29,37,62,color);
+    }
   } else if(!strcmp(icon,"light")) {
     c.drawCircle(21,42,10,color);if(on)c.fillCircle(21,42,6,color);
     c.drawRect(16,52,11,4,color);c.drawFastHLine(18,59,7,color);
@@ -52,5 +59,5 @@ static void drawCardIcon(GFXcanvas16 &c,const char *icon,uint16_t color,bool on,
   } else {
     c.drawRoundRect(6,29,31,29,4,color);c.drawLine(11,50,17,41,color);c.drawLine(17,41,23,47,color);c.drawLine(23,47,32,35,color);
   }
-  if(unavailable)c.drawLine(5,63,37,27,ILI9341_RED);
+  if(unavailable){c.drawLine(5,63,37,27,ILI9341_RED);if(!strcmp(icon,"leak"))c.drawLine(5,27,37,63,ILI9341_RED);}
 }
