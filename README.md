@@ -1,3 +1,5 @@
+![4VRS Display — People, Technology, Better Together](assets/github-banner.png)
+
 # 4VRS Display
 
 ESP32 smart display for Home Assistant: MQTT entity cards grouped by room,
