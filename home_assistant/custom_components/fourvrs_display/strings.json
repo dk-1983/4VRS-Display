@@ -1,0 +1,45 @@
+{
+  "title": "4VRS Display",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect display",
+        "description": "Configure the display at /mqtt first. Copy its device ID and pairing key. Home Assistant MQTT must use the same broker.",
+        "data": {
+          "device_id": "Display device ID",
+          "pairing_key": "Pairing key"
+        }
+      },
+      "entities": {
+        "title": "First data",
+        "description": "Select one to three entities. The delivery sensor reports acceptance by the display.",
+        "data": {
+          "entities": "Displayed entities"
+        }
+      }
+    },
+    "error": {
+      "invalid_identity": "Check the device ID and 32-character key.",
+      "mqtt_unavailable": "Connect the Home Assistant MQTT integration first.",
+      "cannot_connect": "The device did not confirm the pairing key. Check broker, display settings and topic permissions.",
+      "invalid_selection": "Select one to three different entities."
+    },
+    "abort": {
+      "already_configured": "This display is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Display entities",
+        "description": "Select one to three entities. Saving sends a new snapshot; check the delivery sensor for acceptance.",
+        "data": {
+          "entities": "Entities"
+        }
+      }
+    },
+    "error": {
+      "invalid_selection": "Select one to three different entities."
+    }
+  }
+}

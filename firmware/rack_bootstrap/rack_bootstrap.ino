@@ -9,10 +9,14 @@
 #include "SetupPage.h"
 #include "BacklightTest.h"
 #include "DisplayDemo.h"
+#include "MqttService.h"
+#include "MqttDisplay.h"
+#include "MqttPage.h"
+#include "WebPages.h"
 
 
 // Portrait ILI9341 demo with constant backlight and preserved Wi-Fi/OTA.
-static constexpr char VERSION[] = "0.1.12-friends";
+static constexpr char VERSION[] = "0.2.1-web";
 static constexpr uint32_t RETRY_MS = 30000, FALLBACK_MS = 60000;
 static_assert(sizeof(SETUP_PASSWORD) >= 13 && sizeof(SETUP_PASSWORD) <= 64,
               "Use a setup password of 12..63 ASCII characters");
@@ -87,7 +91,30 @@ void showSetup() {
   web.send(200, "text/html; charset=utf-8",page);
 }
 
+bool mqttAdmin() {
+  if(web.authenticate("admin",OTA_PASSWORD))return true;
+  web.requestAuthentication(DIGEST_AUTH,"4VRS Display");return false;
+}
 void configureWeb() {
+  web.on("/mqtt",HTTP_GET,[](){
+    if(!mqttAdmin())return;
+    web.sendHeader("Cache-Control","no-store");
+    String page=FPSTR(MQTT_PAGE);page.replace("__TOKEN__",formToken);page.replace("__VERSION__",VERSION);
+    web.send(200,"text/html; charset=utf-8",page);
+  });
+  web.on("/mqtt/config",HTTP_GET,[](){if(!mqttAdmin())return;web.sendHeader("Cache-Control","no-store");web.send(200,"application/json",RackMqtt::publicConfig());});
+  web.on("/mqtt/status",HTTP_GET,[](){if(!mqttAdmin())return;web.sendHeader("Cache-Control","no-store");web.send(200,"application/json",RackMqtt::status());});
+  web.on("/mqtt/config",HTTP_POST,[](){
+    if(!mqttAdmin())return;
+    String body=web.arg("plain");
+    cJSON *j=RackMqtt::parse(body.c_str(),body.length());char token[65];
+    bool valid=j&&RackMqtt::textField(j,"token",token,sizeof(token))&&formToken==token;
+    if(j)cJSON_Delete(j);
+    if(!valid){web.send(403,"text/plain","Reload the MQTT settings page.");return;}
+    const char *error=RackMqtt::configure(body);
+    web.send(error?400:200,"application/json",error?String("{\"error\":\"")+error+"\"}":"{\"saved\":true}");
+  });
+
 
   web.on("/display", HTTP_GET, [](){ web.sendHeader("Cache-Control", "no-store"); web.send(200, "application/json", displayStatus()); });
   web.on("/backlight", HTTP_GET, [](){ web.sendHeader("Cache-Control", "no-store"); web.send(200, "application/json", backlightStatus()); });
@@ -109,7 +136,13 @@ void configureWeb() {
   });
   web.on("/", HTTP_GET, []() {
     if (apActive && web.client().localIP() == WiFi.softAPIP()) { showSetup(); return; }
-    web.send(200, "text/plain", String("4VRS Server Room Display\nFirmware ")+VERSION+"\nIP: "+WiFi.localIP().toString()+"\nAP: "+(radioApEnabled()?"ON":"OFF")+"\nStatus: /health\nOTA: ArduinoOTA, UDP 3232\n");
+    web.sendHeader("Cache-Control", "no-store");
+    web.send_P(200, "text/html; charset=utf-8", HOME_PAGE);
+  });
+  web.on("/about", HTTP_GET, []() {
+    web.sendHeader("Cache-Control", "no-store");
+    String page=FPSTR(ABOUT_PAGE);page.replace("__VERSION__",VERSION);
+    web.send(200,"text/html; charset=utf-8",page);
   });
   web.on("/wifi", HTTP_GET, showSetup);
   web.on("/wifi", HTTP_POST, []() {
@@ -212,6 +245,7 @@ void setup() {
   traceBoot("Network: before AP/STA connect");
   if (ssid.isEmpty()) startPortal();
   else WiFi.begin(ssid.c_str(), password.c_str());
+  if(!RackMqtt::begin(hostname,VERSION)) Serial.println("MQTT initialization failed; Wi-Fi/OTA remain available");
   traceBoot("HTTP: before configureWeb");
   configureWeb();
   traceBoot("SETUP COMPLETE");
@@ -285,15 +319,7 @@ void loop() {
       Serial.printf("[wifi] retry reconnect result=%d\n", int(WiFi.reconnect()));
     }
   }
-  updateDisplayDemo();
+  RackMqtt::tick();
+  updateMqttDisplay();
   delay(2);
 }
-
-
-
-
-
-
-
-
-

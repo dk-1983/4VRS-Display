@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "key": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "session": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "seq": 1,
+  "ttl_s": 90,
+  "cards": [
+    {
+      "id": "fan.example",
+      "name": "Вентиляция",
+      "kind": "fan",
+      "state": "on",
+      "unit": ""
+    },
+    {
+      "id": "light.example",
+      "name": "Свет",
+      "kind": "light",
+      "state": "off",
+      "unit": ""
+    },
+    {
+      "id": "sensor.example",
+      "name": "Температура",
+      "kind": "sensor",
+      "state": "23.4",
+      "unit": "°C"
+    }
+  ]
+}

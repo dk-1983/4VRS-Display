@@ -1,0 +1,11 @@
+{
+  "domain": "fourvrs_display",
+  "name": "4VRS Display",
+  "version": "0.1.0",
+  "codeowners": ["@dk-1983"],
+  "config_flow": true,
+  "dependencies": ["mqtt"],
+  "requirements": [],
+  "iot_class": "local_push",
+  "integration_type": "device"
+}
