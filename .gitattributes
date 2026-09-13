@@ -8,3 +8,4 @@
 *.jpeg binary
 *.bmp binary
 *.rgb565 binary
+*.pdf binary
