@@ -39,7 +39,7 @@ inline void send(const char *suffix,const String &body,bool retain=false) {
 inline void capabilities(const char *request=nullptr) {
   cJSON *j=cJSON_CreateObject();cJSON_AddNumberToObject(j,"schema",1);cJSON_AddStringToObject(j,"device_id",deviceId);
   cJSON_AddStringToObject(j,"session",session);cJSON_AddStringToObject(j,"firmware",firmwareVersion);
-  cJSON_AddNumberToObject(j,"max_cards",MAX_CARDS);cJSON_AddNumberToObject(j,"max_payload",MAX_PAYLOAD);
+  cJSON_AddNumberToObject(j,"presentation_v",1);cJSON_AddNumberToObject(j,"max_cards",MAX_CARDS);cJSON_AddNumberToObject(j,"max_payload",MAX_PAYLOAD);
   cJSON_AddNumberToObject(j,"width",240);cJSON_AddNumberToObject(j,"height",320);
   if(request)cJSON_AddStringToObject(j,"request_id",request);
   send("/capabilities",printJson(j));lastAnnounce=millis();

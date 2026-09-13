@@ -24,7 +24,7 @@ def text(value, limit, default=""):
     return value.encode("utf-8", errors="replace")[:limit].decode("utf-8", errors="ignore") or default
 
 
-def encode_snapshot(session, key, seq, entities, lookup):
+def encode_snapshot(session, key, seq, entities, lookup, presenter=None):
     validate_selection(entities)
     if not all(isinstance(v, str) and re.fullmatch(r"[0-9a-f]{32}", v) for v in (session, key)):
         raise ValueError("Invalid session or pairing key")
@@ -42,6 +42,8 @@ def encode_snapshot(session, key, seq, entities, lookup):
             "state": text(source.state if source is not None else "unavailable", 96, "unknown"),
             "unit": text(attrs.get("unit_of_measurement"), 16),
         })
+        if presenter is not None:
+            cards[-1].update(presenter(entity_id, attrs, cards[-1]["state"]))
     message = {"schema": 1, "key": key, "session": session, "seq": seq, "ttl_s": 90, "cards": cards}
     result = json.dumps(message, ensure_ascii=False, separators=(",", ":"), allow_nan=False)
     if len(result.encode("utf-8")) > MAX_PAYLOAD:

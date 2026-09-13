@@ -6,7 +6,7 @@
 namespace RackMqtt {
 constexpr size_t MAX_PAYLOAD = 8192;
 constexpr unsigned MAX_CARDS = 12;
-struct Card { char id[97]{}, name[97]{}, kind[17]{}, state[97]{}, unit[17]{}; };
+struct Card { char id[97]{}, name[97]{}, kind[17]{}, state[97]{}, unit[17]{}, icon[17]{}; bool alert=false; };
 struct Snapshot { Card cards[MAX_CARDS]; unsigned count=0; uint32_t seq=0, ttl=90, received=0; bool valid=false; };
 
 inline bool textField(const cJSON *obj, const char *key, char *out, size_t size, bool empty=false) {
@@ -72,10 +72,17 @@ inline const char *decodeSnapshot(const cJSON *root,const char *session,uint32_t
   if(!cJSON_IsArray(cards))return "cards";
   int count=cJSON_GetArraySize(cards);if(count<1||count>MAX_CARDS)return "card_count";
   for(int i=0;i<count;i++) {
-    const cJSON *v=cJSON_GetArrayItem(cards,i);const char *const ck[]={"id","name","kind","state","unit"};
-    if(!cJSON_IsObject(v)||!allowedKeys(v,ck,5))return "card";
+    const cJSON *v=cJSON_GetArrayItem(cards,i);const char *const ck[]={"id","name","kind","state","unit","icon","alert"};
+    if(!cJSON_IsObject(v)||!allowedKeys(v,ck,7))return "card";
     Card &c=next.cards[i];
     if(!textField(v,"id",c.id,sizeof(c.id))||!textField(v,"name",c.name,sizeof(c.name))||!textField(v,"kind",c.kind,sizeof(c.kind))||!textField(v,"state",c.state,sizeof(c.state))||!textField(v,"unit",c.unit,sizeof(c.unit),true))return "card_text";
+    if(cJSON_HasObjectItem(v,"icon")) {
+      if(!textField(v,"icon",c.icon,sizeof(c.icon)))return "icon";
+      const char *icons[]={"air","battery","binary_sensor","button","camera","clock","door","event","fan","gas","group","humidity","image","leak","light","list","location","lock","media","money","motion","network","person","plug","power","pressure","remote","robot","ruler","sensor","settings","shield","smoke","sound","storage","sun","switch","temperature","text","update","valve","warning","water","weather","wind","window"};
+      bool known=false;for(const char *i:icons)if(!strcmp(c.icon,i)){known=true;break;}
+      if(!known)return "icon";
+    }
+    if(cJSON_HasObjectItem(v,"alert")){const cJSON *a=cJSON_GetObjectItemCaseSensitive(v,"alert");if(!cJSON_IsBool(a))return "alert";c.alert=cJSON_IsTrue(a);}
     for(const char *p=c.id;*p;p++)if(!((*p>='a'&&*p<='z')||(*p>='0'&&*p<='9')||*p=='_'||*p=='.'))return "entity_id";
     if(!strchr(c.id,'.'))return "entity_id";
     if(strcmp(c.kind,"fan")&&strcmp(c.kind,"light")&&strcmp(c.kind,"valve")&&strcmp(c.kind,"sensor")&&strcmp(c.kind,"binary_sensor")&&strcmp(c.kind,"switch")&&strcmp(c.kind,"text"))return "kind";

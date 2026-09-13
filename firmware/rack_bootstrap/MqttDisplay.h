@@ -56,6 +56,7 @@ static void renderMqttBand(unsigned band,bool stale) {
     else if(!strcmp(icon,"light"))color=on?ILI9341_YELLOW:ILI9341_LIGHTGREY;
     else if(!strcmp(icon,"leak"))color=on?ILI9341_RED:ILI9341_CYAN;
     else if(on)color=ILI9341_GREEN;
+    if(card.alert)color=ILI9341_RED;
     if(stale||unavailable||unknown)color=ILI9341_DARKGREY;
     drawLabel(c,card.name,8,6,ILI9341_WHITE);
     drawCardIcon(c,icon,color,on,unavailable||unknown,stale);
