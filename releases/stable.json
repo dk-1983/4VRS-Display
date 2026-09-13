@@ -1,4 +1,4 @@
 {
-  "payload": "{\"channel\":\"stable\",\"profile\":\"nadim-v5-ili9341-4m-v1\",\"schema\":1,\"sha256\":\"5420d110671fd970ffd5064b9a9060d22b12a83d7b685dcff81242d32be73452\",\"size\":1514688,\"url\":\"https://github.com/dk-1983/4VRS-Display/releases/download/firmware-v0.4.3/4vrs-display-0.4.3.bin\",\"version\":\"0.4.3\"}",
-  "signature": "304502204afcefd0c767584f8921778c5ac4ce50b542d9cae8ffe24eae9c197f06c795d1022100c84da9de57380264ee2300165532e8b81365c4e462858eebcf6b9b6b40f839b0"
+  "payload": "{\"channel\":\"stable\",\"profile\":\"nadim-v5-ili9341-4m-v1\",\"schema\":1,\"sha256\":\"41b0767c0d8e89a7b53db8a93b94712bf08fa286d1c4fb0d78bf9eb6fc65c483\",\"size\":1539424,\"url\":\"https://github.com/dk-1983/4VRS-Display/releases/download/firmware-v0.4.4/4vrs-display-0.4.4.bin\",\"version\":\"0.4.4\"}",
+  "signature": "304502203860e4be06611c18272583f575dc8ca26c2d4565d1cb989c4d3ecee3dbfcac22022100b14f6a1cebff15726fa45a378077d1e3a4844bf76c3150532c118efc4ed66f72"
 }
