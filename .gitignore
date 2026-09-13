@@ -31,3 +31,20 @@ htmlcov/
 home_assistant/.storage/
 home_assistant/config/
 home_assistant/dist/
+
+# Private engineering notebooks and local agent instructions
+/AGENTS.md
+/VALIDATION.md
+/.agents/
+/.codex/
+/docs/*.md
+!/docs/README.md
+!/docs/user-guide.md
+!/docs/hardware.md
+!/docs/home-assistant.md
+!/docs/updates.md
+!/docs/development.md
+!/docs/roadmap.md
+/assets/FRIENDS.md
+/assets/IMAGEGEN.md
+/assets/4vrs-splash-original.md
