@@ -20,7 +20,7 @@ class ReleaseTests(unittest.TestCase):
     def test_private_and_oversized_images_rejected(self):
         with tempfile.TemporaryDirectory() as folder:
             p=Path(folder)
-            for flag in ["migration","test_fail_boot"]:
+            for flag in ["migration","test_fail_boot","test_feed"]:
                 (p/"build-kind.json").write_text(json.dumps({"version":"0.4.0","public":True,flag:True}))
                 with self.assertRaises(ValueError):validate_build(p)
             (p/"build-kind.json").write_text(json.dumps({"version":"0.4.0","public":True}))

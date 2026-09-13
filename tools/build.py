@@ -11,10 +11,11 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--cli',default='C:/Program Files/Arduino IDE/resources/app/lib/backend/resources/arduino-cli.exe')
     p.add_argument('--config',type=Path)
-    p.add_argument('--version',default='0.4.1')
+    p.add_argument('--version',default='0.4.2')
     p.add_argument('--output',type=Path,default=ROOT/'build/firmware')
     p.add_argument('--migrate-credentials',action='store_true',help='PRIVATE one-time migration; never publish this binary')
     p.add_argument('--test-fail-boot',action='store_true',help='PRIVATE rollback test; never publish this binary')
+    p.add_argument('--test-feed',action='store_true',help='PRIVATE: use testing.json, never publish this image')
     a=p.parse_args()
     if not re.fullmatch(r'[0-9]{1,5}\.[0-9]{1,5}\.[0-9]{1,5}',a.version):p.error('Use numeric major.minor.patch')
     if a.migrate_credentials and not (ROOT/'firmware/rack_bootstrap/LocalSecrets.h').exists():p.error('Migration requires existing private LocalSecrets.h')
@@ -25,6 +26,7 @@ def main():
     tmp=ROOT/'build/tmp';tmp.mkdir(parents=True,exist_ok=True)
     flags='-DFOURVRS_VERSION='+a.version
     if a.migrate_credentials:flags+=' -DFOURVRS_MIGRATE_CREDENTIALS=1'
+    if a.test_feed:flags+=' -DFOURVRS_TEST_FEED=1'
     if a.test_fail_boot:flags+=' -DFOURVRS_TEST_FAIL_BOOT=1'
     cmd=base+['compile','--fqbn',FQBN,'--warnings','all','--build-property','compiler.cpp.extra_flags='+flags,'--build-path',str(build),str(ROOT/'firmware/rack_bootstrap')]
     log_path=build.parent/(build.name+'.compile.log')
@@ -36,6 +38,6 @@ def main():
     print(output[-5000:])
     if result.returncode==0:
         import json
-        (build/'build-kind.json').write_text(json.dumps({'version':a.version,'public':not(a.migrate_credentials or a.test_fail_boot),'migration':a.migrate_credentials,'test_fail_boot':a.test_fail_boot}))
+        (build/'build-kind.json').write_text(json.dumps({'version':a.version,'public':not(a.migrate_credentials or a.test_fail_boot or a.test_feed),'migration':a.migrate_credentials,'test_fail_boot':a.test_fail_boot,'test_feed':a.test_feed}))
     raise SystemExit(result.returncode)
 if __name__=='__main__':main()

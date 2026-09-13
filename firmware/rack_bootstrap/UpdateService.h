@@ -14,7 +14,11 @@
 
 namespace RackUpdate {
 static constexpr char PROFILE[]="nadim-v5-ili9341-4m-v1";
+#ifdef FOURVRS_TEST_FEED
+static constexpr char FEED[]="https://raw.githubusercontent.com/dk-1983/4VRS-Display/main/releases/testing.json";
+#else
 static constexpr char FEED[]="https://raw.githubusercontent.com/dk-1983/4VRS-Display/main/releases/stable.json";
+#endif
 static constexpr char ASSET_PREFIX[]="https://github.com/dk-1983/4VRS-Display/releases/download/firmware-v";
 struct Settings { uint32_t magic=0x55504431,revision=0; bool web=true,ha=true,managed=false; };
 static Settings settings;
@@ -74,21 +78,38 @@ inline bool decode(const char *text,size_t size,Manifest &m) {
   cJSON_Delete(envelope);return ok;
 }
 inline esp_http_client_handle_t open(const char *url) {
-  esp_http_client_config_t c{};c.url=url;c.cert_pem=UPDATE_CA_CERTS;c.timeout_ms=6000;c.buffer_size=1024;c.buffer_size_tx=512;c.disable_auto_redirect=true;c.user_agent="4VRS-Display/1";
-  auto h=esp_http_client_init(&c);if(!h)return nullptr;
-  // Explicit HTTPS-only redirects. GitHub release assets redirect to its CDN.
+  char current[2048];if(strlcpy(current,url,sizeof(current))>=sizeof(current))return nullptr;
+  httpCode=0;transportCode=0;tlsCode=0;tlsFlags=0;
+  // A fresh client resets request/parser state and releases the previous TLS
+  // allocation. GitHub CDN URLs also need more than the default 512-byte TX buffer.
   for(unsigned redirects=0;redirects<4;++redirects) {
+    if(strncmp(current,"https://",8)){transportCode=ESP_ERR_INVALID_ARG;return nullptr;}
+    struct RedirectTarget {char *url;size_t capacity;bool present=false,valid=false;} target{current,sizeof(current)};
+    esp_http_client_config_t c{};c.url=current;c.cert_pem=UPDATE_CA_CERTS;
+    c.user_data=&target;
+    c.event_handler=[](esp_http_client_event_t *event)->esp_err_t {
+      if(event->user_data&&event->event_id==HTTP_EVENT_ON_HEADER&&event->header_key&&!strcasecmp(event->header_key,"Location")) {
+        auto *next=static_cast<RedirectTarget*>(event->user_data);next->present=true;
+        next->valid=event->header_value&&strlcpy(next->url,event->header_value,next->capacity)<next->capacity;
+      }
+      return ESP_OK;
+    };
+    c.timeout_ms=15000;c.buffer_size=1024;c.buffer_size_tx=2304;
+    c.disable_auto_redirect=true;c.user_agent="4VRS-Display/1";
+    auto h=esp_http_client_init(&c);if(!h){transportCode=ESP_ERR_NO_MEM;return nullptr;}
     transportCode=esp_http_client_open(h,0);
-    if(transportCode!=ESP_OK){int code=0,flags=0;esp_http_client_get_and_clear_last_tls_error(h,&code,&flags);tlsCode=code;tlsFlags=flags;break;}
-    if(esp_http_client_fetch_headers(h)<0){transportCode=-1;break;}
+    if(transportCode!=ESP_OK){int code=0,flags=0;esp_http_client_get_and_clear_last_tls_error(h,&code,&flags);tlsCode=code;tlsFlags=flags;esp_http_client_cleanup(h);return nullptr;}
+    int64_t length=esp_http_client_fetch_headers(h);
+    if(length<0){transportCode=(int)length;esp_http_client_cleanup(h);return nullptr;}
     int status=esp_http_client_get_status_code(h);httpCode=status;
-    if(status==200)return h;
-    if(status!=301&&status!=302&&status!=307&&status!=308)break;
-    if(esp_http_client_set_redirection(h)!=ESP_OK)break;
-    char next[2048];if(esp_http_client_get_url(h,next,sizeof(next))!=ESP_OK||strncmp(next,"https://",8))break;
-    esp_http_client_close(h);
+    if(status==200){esp_http_client_set_user_data(h,nullptr);return h;}
+    if(status!=301&&status!=302&&status!=307&&status!=308){esp_http_client_cleanup(h);return nullptr;}
+    // get_url() omits the query string; CDN authorization requires the full Location.
+    bool next=target.present&&target.valid;
+    esp_http_client_cleanup(h);
+    if(!next){transportCode=ESP_ERR_INVALID_SIZE;return nullptr;}
   }
-  esp_http_client_cleanup(h);return nullptr;
+  transportCode=ESP_ERR_HTTP_MAX_REDIRECT;return nullptr;
 }
 inline bool fetchManifest(Manifest &m) {
   auto h=open(FEED);if(!h)return false;

@@ -13,7 +13,7 @@ REPO = 'dk-1983/4VRS-Display'
 def validate_build(build):
     meta = json.loads((build/'build-kind.json').read_text())
     version = meta['version']
-    if not meta.get('public') or meta.get('migration') or meta.get('test_fail_boot'):
+    if not meta.get('public') or meta.get('migration') or meta.get('test_fail_boot') or meta.get('test_feed'):
         raise ValueError('Private migration/test build cannot be released')
     if not re.fullmatch(r'[0-9]{1,5}\.[0-9]{1,5}\.[0-9]{1,5}', version):
         raise ValueError('Expected stable numeric version')
