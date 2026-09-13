@@ -64,7 +64,7 @@ A touchscreen and microSD card are not required. GPIO signals use 3.3 V logic; f
 - [Espressif documentation catalogue](https://www.espressif.com/en/support/documents/technical-documents) — select the datasheet matching the exact module marking.
 - [ESP32-WROVER-E / WROVER-IE datasheet](https://documentation.espressif.com/esp32-wrover-e_esp32-wrover-ie_datasheet_en.html) and [ESP32 hardware design guidelines](https://docs.espressif.com/projects/esp-hardware-design-guidelines/en/latest/esp32/schematic-checklist.html).
 - [ESP LINK v1.0 documentation from IOT-MCU](https://github.com/IOT-MCU/ESP-LINK-v1.0) — an example USB-UART adapter, not a required model. Its ESP-01 instructions are not the ESP32 flashing procedure.
-- [Our electrical schematic, BOM and assembly notes](hardware/schematic/README.md).
+- [Base circuit and optional extended schematic (A1), BOM and assembly notes](hardware/schematic/README.md).
 
 ## First setup
 

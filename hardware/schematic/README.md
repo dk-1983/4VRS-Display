@@ -2,6 +2,14 @@
 
 # 4VRS Display electrical schematic - Rev A1
 
+## Base and extended variants
+
+**Base variant:** the author's original circuit, used in the assembled, working devices. It retains the original L1117-33 supply and component population, with our ILI9341 connections and direct GPIO4-to-LED control input.
+
+**Extended variant (A1):** the PDF, SVG, BOM and connectivity list below describe an optional alternative with AP7361C and additional supply/startup components. The author reviewed this schematic and accepted its circuit design. It is not the component list of the existing boards or a required upgrade.
+
+The base circuit remains the project's reference implementation. The added complexity of A1 is optional; no comparative stability measurements have established its benefit for this installation. Working boards do not need to be rebuilt to match A1. Three buttons remain provisions for future firmware.
+
 [Download the three-sheet A3 PDF](4vrs-display-schematic-A1.pdf)
 
 ![Power, ESP32 and ILI9341](4vrs-display-schematic-A1-sheet-1.svg)

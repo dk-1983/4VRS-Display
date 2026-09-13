@@ -64,7 +64,7 @@ Home Assistant → MQTT-брокер → 4VRS Display
 - [Каталог документации Espressif](https://www.espressif.com/en/support/documents/technical-documents) — datasheet нужно выбирать по точной маркировке модуля.
 - [Datasheet ESP32-WROVER-E / WROVER-IE](https://documentation.espressif.com/esp32-wrover-e_esp32-wrover-ie_datasheet_en.html) и [рекомендации Espressif по схемотехнике ESP32](https://docs.espressif.com/projects/esp-hardware-design-guidelines/en/latest/esp32/schematic-checklist.html).
 - [Документация ESP LINK v1.0 от IOT-MCU](https://github.com/IOT-MCU/ESP-LINK-v1.0) — пример USB-UART адаптера, а не обязательная модель. Инструкции для ESP-01 из его руководства не заменяют порядок прошивки ESP32.
-- [Наша электрическая схема, перечень деталей и пояснения](hardware/schematic/README.ru.md).
+- [Базовая схема и расширенный вариант A1, перечень деталей и пояснения](hardware/schematic/README.ru.md).
 
 ## Первый запуск
 
