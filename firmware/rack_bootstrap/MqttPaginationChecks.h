@@ -27,7 +27,7 @@ constexpr bool exhaustive() {
         for(unsigned n=0;n<page.count;++n)if(!RackPages::sameArea(s,page.areaFirst,page.first+n))return false;
         seen+=page.count;}
     }
-    if(seen!=count||intros!=group+1||p.count>24)return false;
+    if(seen!=count||intros!=(group?group+1:0)||p.count>24)return false;
   }
   return true;
 }
@@ -76,6 +76,31 @@ constexpr bool withoutCovers() {
   if(seen!=16||p.pages[2].number!=1||p.pages[4].total!=3)return false;
   s.count=0;return RackPages::makePlan<20>(s,false).count==0;
 }
+constexpr bool singleRoom() {
+  struct Rooms { Card cards[20]{}; unsigned count=0; } s;
+  for(unsigned i=0;i<20;++i)s.cards[i].area="Kitchen";
+  for(unsigned count=1;count<=20;++count) {
+    s.count=count;
+    for(unsigned enabled=0;enabled<2;++enabled) {
+      bool covers=enabled!=0;
+      auto p=RackPages::makePlan<20>(s,covers);
+      if(p.count!=(count+2)/3)return false;
+      unsigned seen=0;
+      for(unsigned i=0;i<p.count;++i){auto page=p.pages[i];
+        if(page.intro||page.first!=seen||page.number!=i+1||page.total!=p.count||page.areaCount!=count)return false;
+        seen+=page.count;
+      }
+      if(seen!=count)return false;
+    }
+  }
+  s.count=5;s.cards[4].area="Balcony";
+  auto multi=RackPages::makePlan<20>(s);
+  if(multi.count!=5||!multi.pages[0].intro||!multi.pages[3].intro)return false;
+  s.cards[4].area="Kitchen";
+  auto single=RackPages::makePlan<20>(s);
+  return single.count==2&&!single.pages[0].intro&&!single.pages[1].intro;
+}
+static_assert(singleRoom(),"Single area: content only, including dynamic room changes");
 static_assert(withoutCovers(),"No covers: 3/2, 3/1, 3/3/1 without mixed rooms");
 static_assert(requestedCycle(),"Room cycle: title + 3/2, title + 3/1, title + 3/3/1");
 static_assert(twenty(),"Room pagination: 14 + 6 and 20 single rooms");

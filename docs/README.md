@@ -8,4 +8,4 @@
 - [План развития](plan.md)
 - [MQTT-протокол](../protocol/README.md)
 
-Эти инструкции описывают firmware 0.4.3 и интеграцию Home Assistant 0.4.0.
+Эти инструкции описывают firmware 1.0.0 и интеграцию Home Assistant 0.4.3.

@@ -1,3 +1,3 @@
 """Integration identity; no installation credentials belong here."""
 DOMAIN = "fourvrs_display"
-PLATFORMS = ["sensor", "switch"]
+PLATFORMS = ["sensor", "switch", "number"]

@@ -54,3 +54,9 @@ SDO/MISO. Нули при отсутствующем MISO не подтверж�
 - [Datasheet ESP32-WROVER-E / WROVER-IE](https://documentation.espressif.com/esp32-wrover-e_esp32-wrover-ie_datasheet_en.html) и [рекомендации Espressif по схемотехнике ESP32](https://docs.espressif.com/projects/esp-hardware-design-guidelines/en/latest/esp32/schematic-checklist.html).
 - [Документация ESP LINK v1.0 от IOT-MCU](https://github.com/IOT-MCU/ESP-LINK-v1.0) — пример USB-UART адаптера, а не обязательная модель. Инструкции для ESP-01 из его руководства не заменяют порядок прошивки ESP32.
 - [Наша электрическая схема, перечень деталей и пояснения](../hardware/schematic/README.ru.md).
+
+## SD card SPI wiring / Подключение SD
+
+Reserve GPIO25 for SD_CS. Connect the separate SD header on the display module: SD_MOSI → GPIO23, SD_MISO → GPIO19, SD_CLK → GPIO18, SD_CS → GPIO25. TFT_CS remains GPIO13. The SD header is not internally connected to the TFT SPI header. Firmware 1.0.0 mounts the card at startup and plays BMP/GIF media. Status is available under Settings → Multimedia → SD card. Formatting is never performed; 16 GB FAT32 cards have been tested on assembled hardware. Shared MISO uses a pull-up; do not retain the previous TFT-only pull-down.
+
+Для SD_CS выделен GPIO25 (контакт «25» на NADIM V5). SD_MOSI → GPIO23, SD_MISO → GPIO19, SD_CLK → GPIO18. CS дисплея остаётся GPIO13. На исходной радиоплате GPIO25 обозначен также PCM-LRCK; это назначение не используется прошивкой 4VRS Display. В 1.0.0 карта монтируется при запуске и используется для фото BMP и GIF. Состояние: Настройки → Мультимедиа → SD-карта. Форматирование не выполняется; проверены FAT32-карты 16 ГБ на собранных платах. Общая линия MISO использует подтяжку вверх вместо прежней подтяжки вниз для отдельного TFT.

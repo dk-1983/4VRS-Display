@@ -1,8 +1,8 @@
-# 4VRS Display — Home Assistant integration 0.4.0
+# 4VRS Display — Home Assistant integration 0.4.3
 
 Copy this directory into `config/custom_components/fourvrs_display` and restart
 Home Assistant. Configure MQTT on both Home Assistant and the display, then add
-4VRS Display using the device's own Device ID and pairing key. Select 1–20 entities.
+4VRS Display using the device's own Device ID and pairing key. Select 0–20 entities. With no entities, the display can show local media.
 
 Use the integration entry's settings to edit the selection. Existing pairing is
 preserved when updating the component. Firmware 0.4.3 supports the per-device

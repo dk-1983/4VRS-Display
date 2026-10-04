@@ -4,6 +4,8 @@
 #include <Adafruit_ILI9341.h>
 #include "DemoImage.h"
 #include "DisplayReadback.h"
+#include "Backlight.h"
+#include "CardStorage.h"
 
 // NADIM V5 P6: CS=13, RESET=2, DC=14, MOSI=23, SCK=18.
 // New board: SDO -> GPIO19. Older boards may have no MISO; reads are diagnostic only.
@@ -13,13 +15,18 @@ static Adafruit_ILI9341 display(&displaySpi, 14, 13, 2);
 static uint16_t displayRow = 0;
 static uint16_t rowPixels[DEMO_WIDTH];
 static bool displayStarted = false;
+static bool skipBootDemo = false;
 static_assert(DEMO_WIDTH == 240 && DEMO_HEIGHT == 320, "Expected portrait demo");
 static_assert(sizeof(DEMO_BMP) == DEMO_PIXEL_OFFSET + DEMO_WIDTH * DEMO_HEIGHT * 2,
               "Expected packed RGB565 BMP");
 
 void startDisplayDemo() {
+  pinMode(13,OUTPUT);digitalWrite(13,HIGH);
+  pinMode(CardStorage::CS,OUTPUT);digitalWrite(CardStorage::CS,HIGH);
   displaySpi.begin(18, DisplayReadback::MISO_PIN, 23, 13);
-  gpio_pulldown_en(GPIO_NUM_19);
+  // Shared SD MISO idles high; an unwired TFT still reads as no_response (0xFF).
+  gpio_set_pull_mode(GPIO_NUM_19, GPIO_PULLUP_ONLY);
+  CardStorage::begin(displaySpi);
   display.begin(DISPLAY_SPI_HZ);
   display.setRotation(0);
   // User reports 0x20 is upside down: flip both scan axes for a 180-degree turn.
@@ -36,12 +43,26 @@ void updateDisplayDemo() {
   // Original portrait BMP, top-down RGB565 little-endian; no scaling or rotation.
   for (unsigned x = 0; x < DEMO_WIDTH; ++x) {
     const uint32_t offset = DEMO_PIXEL_OFFSET + (uint32_t(displayRow) * DEMO_WIDTH + x) * 2;
-    rowPixels[x] = uint16_t(pgm_read_byte(DEMO_BMP + offset)) |
-                   (uint16_t(pgm_read_byte(DEMO_BMP + offset + 1)) << 8);
+    rowPixels[x] = skipBootDemo?0:(uint16_t(pgm_read_byte(DEMO_BMP + offset)) |
+                   (uint16_t(pgm_read_byte(DEMO_BMP + offset + 1)) << 8));
   }
   display.drawRGBBitmap(0, displayRow, rowPixels, DEMO_WIDTH, 1);
   ++displayRow;
+  if(displayRow==DEMO_HEIGHT)backlightFrameReady();
   // Return every row so the main loop can service HTTP and ArduinoOTA.
+}
+
+// Give the complete startup image three seconds at the chosen brightness,
+// regardless of how quickly Home Assistant sends its first snapshot.
+bool updateBootSplash() {
+  static bool finished=false,holding=false;
+  static uint32_t fullFrameAt=0;
+  if(skipBootDemo){finished=true;return false;}
+  if(finished)return false;
+  if(displayRow<DEMO_HEIGHT){updateDisplayDemo();return true;}
+  if(!holding){holding=true;fullFrameAt=millis();}
+  if(uint32_t(millis()-fullFrameAt)<RackBacklight::Ramp::DURATION_MS+3000)return true;
+  finished=true;return false;
 }
 
 String displayStatus() {

@@ -21,7 +21,7 @@ for(const [language,html] of [['ru',raw],['en',english]]){
   const context={document:{getElementById:id=>nodes[id]},AbortController,
     setTimeout:fn=>(timer=fn,1),clearTimeout:()=>{timer=null;},
     fetch:async(url,options)=>{
-      if(url==='/health')return {ok:true,json:async()=>({hostname:'test',ip:'192.0.2.1',ap:false})};
+      if(url==='/health')return {ok:true,json:async()=>({hostname:'test',mac_address:'1C:9D:C2:FD:6F:70',ip:'192.0.2.1',ap:false})};
       assert.equal(url,'/display');assert.equal(options.cache,'no-store');calls++;
       if(mode==='timeout')return new Promise((_,reject)=>options.signal.addEventListener('abort',()=>reject(Error('timeout'))));
       if(mode==='network')throw Error('offline');
@@ -51,6 +51,7 @@ for(const [language,html] of [['ru',raw],['en',english]]){
     if(mode==='no_response')assert(nodes['display-result'].textContent.includes('SDO/MISO'));
     checks++;
   }
+  assert.equal(nodes.mac.textContent,'1C:9D:C2:FD:6F:70');
   console.log(language+': display states, failed HTTP/JSON/network/timeout, retry and duplicate-click handling passed');
 }
 console.log(checks+' UI cases passed; English translations complete.');

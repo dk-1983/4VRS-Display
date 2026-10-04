@@ -5,7 +5,7 @@ from .const import DOMAIN
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
-    async_add_entities([DeliverySensor(entry.runtime_data)])
+    async_add_entities([DeliverySensor(entry.runtime_data), MacAddressSensor(entry.runtime_data)])
 
 
 class DeliverySensor(SensorEntity):
@@ -32,3 +32,22 @@ class DeliverySensor(SensorEntity):
         await super().async_added_to_hass()
         self.runtime.listeners.add(self.async_write_ha_state)
         self.async_on_remove(lambda: self.runtime.listeners.discard(self.async_write_ha_state))
+
+
+class MacAddressSensor(DeliverySensor):
+    """Physical Wi-Fi station address used for DHCP reservations."""
+    _attr_name = None
+    _attr_translation_key = "mac_address"
+    _attr_icon = "mdi:network-outline"
+
+    def __init__(self, runtime):
+        super().__init__(runtime)
+        self._attr_unique_id = f"{runtime.device_id}_mac_address"
+
+    @property
+    def native_value(self):
+        return self.runtime.mac_address
+
+    @property
+    def extra_state_attributes(self):
+        return {"interface": "Wi-Fi STA"}

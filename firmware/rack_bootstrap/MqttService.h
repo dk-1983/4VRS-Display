@@ -7,6 +7,7 @@
 #include <freertos/task.h>
 #include "MqttProtocol.h"
 #include "MqttIcons.h"
+#include "Backlight.h"
 
 namespace RackMqtt {
 struct Config {
@@ -15,7 +16,7 @@ struct Config {
   uint16_t port=1883;
   char host[129]{}, user[97]{}, password[129]{}, ca[2049]{}, key[33]{};
 };
-struct Incoming { unsigned generation; uint16_t size; bool request; char data[MAX_PAYLOAD+1]; };
+struct Incoming { unsigned generation; uint16_t size; bool request,retained; char data[MAX_PAYLOAD+1]; };
 struct Outgoing { char suffix[32]; char data[1536]; bool retain=false; };
 static Incoming *assemblyBuffer=nullptr,*incomingBuffer=nullptr;
 static Config config;
@@ -26,7 +27,7 @@ static std::atomic<unsigned> connects{0},dropped{0},transportError{0};
 static std::atomic<uint32_t> retryAt{0},retryDelay{2000};
 static char base[96],deviceId[64],firmwareVersion[32],session[33],lastRequest[65];
 static unsigned seenConnects=0,accepted=0,rejected=0;
-static uint32_t sequence=0,lastAnnounce=0;
+static uint32_t sequence=0,lastAnnounce=0,backlightSeq=0;
 static Snapshot snapshot;
 static bool dirty=true;
 static char lastError[32]="not_configured";
@@ -40,8 +41,11 @@ inline void send(const char *suffix,const String &body,bool retain=false) {
 }
 inline void capabilities(const char *request=nullptr) {
   cJSON *j=cJSON_CreateObject();cJSON_AddNumberToObject(j,"schema",1);cJSON_AddStringToObject(j,"device_id",deviceId);
+  cJSON_AddStringToObject(j,"mac_address",WiFi.macAddress().c_str());
   cJSON_AddStringToObject(j,"session",session);cJSON_AddStringToObject(j,"firmware",firmwareVersion);
   cJSON_AddNumberToObject(j,"presentation_v",1);cJSON_AddNumberToObject(j,"area_v",1);cJSON_AddNumberToObject(j,"area_icon_v",1);cJSON_AddNumberToObject(j,"update_v",1);cJSON_AddNumberToObject(j,"max_cards",MAX_CARDS);cJSON_AddNumberToObject(j,"max_payload",MAX_PAYLOAD);
+  cJSON_AddNumberToObject(j,"empty_snapshot_v",1);
+  cJSON_AddNumberToObject(j,"backlight_v",1);cJSON_AddNumberToObject(j,"brightness_percent",backlightPercent);
   cJSON_AddNumberToObject(j,"width",240);cJSON_AddNumberToObject(j,"height",320);
   if(request)cJSON_AddStringToObject(j,"request_id",request);
   send("/capabilities",printJson(j));lastAnnounce=millis();
@@ -68,7 +72,7 @@ inline void event(void *,esp_event_base_t,int32_t eventId,void *eventData) {
       snprintf(topic,sizeof(topic),"%s/request",base);
       bool isRequest=e->topic_len==(int)strlen(topic)&&!memcmp(topic,e->topic,e->topic_len);
       if(!isSnapshot&&!isRequest)return;
-      assembling.generation=connects.load();assembling.request=isRequest;assembling.size=e->total_data_len;valid=true;
+      assembling.generation=connects.load();assembling.request=isRequest;assembling.retained=e->retain;assembling.size=e->total_data_len;valid=true;
     }
     if(!valid)return;
     if(e->current_data_offset!=(int)filled||e->data_len<0||filled+e->data_len>assembling.size){valid=false;++dropped;return;}
@@ -130,16 +134,30 @@ inline bool begin(const String &id,const char *version) {
   if(xTaskCreate(worker,"rack-mqtt-control",8192,nullptr,1,nullptr)!=pdPASS)return false;
   randomHex(session);if(config.tls)configTime(0,0,"pool.ntp.org","time.google.com");xQueueOverwrite(configQueue,&config);return true;
 }
-inline String updateStatus(){cJSON *j=cJSON_Parse(RackUpdate::status().c_str());if(!j)return "{}";cJSON_AddNumberToObject(j,"schema",1);cJSON_AddStringToObject(j,"device_id",deviceId);cJSON_AddStringToObject(j,"session",session);return printJson(j);}
+inline String updateStatus(){cJSON *j=cJSON_Parse(RackUpdate::status().c_str());if(!j)return "{}";cJSON_AddNumberToObject(j,"schema",1);cJSON_AddStringToObject(j,"device_id",deviceId);cJSON_AddStringToObject(j,"mac_address",WiFi.macAddress().c_str());
+  cJSON_AddStringToObject(j,"session",session);return printJson(j);}
+inline void sendBacklight(uint32_t seq=0,const char *result="state") {
+  cJSON *j=cJSON_CreateObject();cJSON_AddNumberToObject(j,"schema",1);cJSON_AddStringToObject(j,"device_id",deviceId);cJSON_AddStringToObject(j,"mac_address",WiFi.macAddress().c_str());
+  cJSON_AddStringToObject(j,"session",session);
+  cJSON_AddNumberToObject(j,"command_seq",seq);cJSON_AddNumberToObject(j,"brightness_percent",backlightPercent);cJSON_AddStringToObject(j,"result",result);send("/backlight/status",printJson(j));
+}
 inline void tick() {
   if(!rxQueue||!incomingBuffer)return;
-  if(connects.load()!=seenConnects){seenConnects=connects.load();randomHex(session);lastRequest[0]=0;sequence=0;dirty=true;capabilities();}
+  if(connects.load()!=seenConnects){seenConnects=connects.load();randomHex(session);lastRequest[0]=0;sequence=0;backlightSeq=0;dirty=true;capabilities();}
   Incoming &incoming=*incomingBuffer;
   if(config.enabled&&xQueueReceive(rxQueue,&incoming,0)==pdTRUE&&incoming.generation==seenConnects&&connected) {
     cJSON *root=parse(incoming.data,incoming.size);char key[33];
     if(!root||!textField(root,"key",key,sizeof(key))||strcmp(config.key,key)) {++rejected;strlcpy(lastError,"invalid_or_unauthorized",sizeof(lastError));if(root)cJSON_Delete(root);return;}
     if(incoming.request) {
       const cJSON *action=cJSON_GetObjectItemCaseSensitive(root,"request");
+      if(cJSON_IsString(action)&&!strcmp(action->valuestring,"backlight")) {
+        uint32_t schema,seq,percent;char commandSession[33];
+        bool valid=!incoming.retained&&numberField(root,"schema",schema,1,1)&&textField(root,"session",commandSession,sizeof(commandSession))&&!strcmp(commandSession,session)&&numberField(root,"command_seq",seq,1,0xffffffff)&&numberField(root,"brightness_percent",percent,0,100);
+        if(!valid){++rejected;strlcpy(lastError,"backlight_command",sizeof(lastError));}
+        else if(seq<=backlightSeq)sendBacklight(seq,"stale_command");
+        else {backlightSeq=seq;bool ok=setBacklightPercent(percent);updateBacklight();sendBacklight(seq,ok?"accepted":"storage_error");}
+        cJSON_Delete(root);return;
+      }
       if(cJSON_IsString(action)&&!strcmp(action->valuestring,"update_policy")) {
         uint32_t revision,policySchema;char policySession[33];const cJSON *enabled=cJSON_GetObjectItemCaseSensitive(root,"enabled");
         if(numberField(root,"schema",policySchema,1,1)&&RackMqtt::textField(root,"session",policySession,sizeof(policySession))&&!strcmp(policySession,session)&&cJSON_IsBool(enabled)&&RackMqtt::numberField(root,"revision",revision,0,0x7fffffff)) {
@@ -151,7 +169,7 @@ inline void tick() {
       }
       uint32_t schema;char request[16],requestId[65];const char *const keys[]={"schema","key","request","request_id"};
       if(allowedKeys(root,keys,4)&&numberField(root,"schema",schema,1,1)&&textField(root,"request",request,sizeof(request))&&!strcmp(request,"hello")&&textField(root,"request_id",requestId,sizeof(requestId))) {
-        if(strcmp(lastRequest,requestId)){strlcpy(lastRequest,requestId,sizeof(lastRequest));randomHex(session);sequence=0;}
+        if(strcmp(lastRequest,requestId)){strlcpy(lastRequest,requestId,sizeof(lastRequest));randomHex(session);sequence=0;backlightSeq=0;}
         capabilities(requestId);
       } else {++rejected;strlcpy(lastError,"request",sizeof(lastError));}
     } else {
@@ -165,11 +183,13 @@ inline void tick() {
     cJSON_Delete(root);
   }
   if(connected&&uint32_t(millis()-lastAnnounce)>30000)capabilities();
+  static uint32_t backlightSeen=0;if(connected&&backlightSeen!=backlightChanges){backlightSeen=backlightChanges;sendBacklight();}
   static uint32_t updateSeen=0;if(connected&&updateSeen!=RackUpdate::changes){updateSeen=RackUpdate::changes;send("/update/status",updateStatus());}
 }
 inline String status() {
   cJSON *j=cJSON_CreateObject();cJSON_AddBoolToObject(j,"enabled",config.enabled);cJSON_AddBoolToObject(j,"connected",connected);
-  cJSON_AddStringToObject(j,"device_id",deviceId);cJSON_AddStringToObject(j,"base_topic",base);cJSON_AddStringToObject(j,"session",session);
+  cJSON_AddStringToObject(j,"device_id",deviceId);cJSON_AddStringToObject(j,"base_topic",base);cJSON_AddStringToObject(j,"mac_address",WiFi.macAddress().c_str());
+  cJSON_AddStringToObject(j,"session",session);
   cJSON_AddNumberToObject(j,"accepted",accepted);cJSON_AddNumberToObject(j,"rejected",rejected);cJSON_AddNumberToObject(j,"dropped",dropped);
   cJSON_AddNumberToObject(j,"connections",connects);cJSON_AddNumberToObject(j,"transport_error",transportError);cJSON_AddStringToObject(j,"last_error",lastError);
   cJSON_AddNumberToObject(j,"seq",sequence);cJSON_AddBoolToObject(j,"has_snapshot",snapshot.valid);

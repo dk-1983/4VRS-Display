@@ -21,7 +21,7 @@ python tools/test_release.py
 зафиксированы в `tools/build.py`.
 
 ```sh
-python tools/build.py --config <arduino-cli.yaml> --version 0.4.3
+python tools/build.py --config <arduino-cli.yaml> --version 1.0.0
 ```
 
 Путь к Arduino CLI можно передать через `--cli`, каталог результата — через
@@ -37,3 +37,7 @@ python tools/build.py --config <arduino-cli.yaml> --version 0.4.3
 кандидата манифест переносится в `releases/stable.json`. Не заменяйте бинарники
 уже выпущенных версий. Локальные журналы и инструкции агенту не являются публичной
 документацией и исключены из отслеживания.
+
+## GIF decoder
+
+Firmware 1.0.0 uses [AnimatedGIF 2.2.0](https://github.com/bitbank2/AnimatedGIF/releases/tag/2.2.0), licensed Apache-2.0. Install with `arduino-cli lib install AnimatedGIF@2.2.0`. The decoder and image buffers use PSRAM. GIF test assets can be regenerated with `tools/generate_gif_test.py` (Pillow; Arial fonts on Windows).

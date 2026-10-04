@@ -44,7 +44,7 @@ async def handshake(hass, device_id, key):
 
 
 def selection_schema(default=None):
-    return vol.Schema({vol.Required("entities", default=default or []): selector.EntitySelector(selector.EntitySelectorConfig(multiple=True))})
+    return vol.Schema({vol.Optional("entities", default=default or []): selector.EntitySelector(selector.EntitySelectorConfig(multiple=True))})
 
 
 class DisplayConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -78,7 +78,7 @@ class DisplayConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
         if user_input is not None:
             try:
-                entities = validate_selection(user_input["entities"])
+                entities = validate_selection(user_input.get("entities", []))
             except ValueError:
                 errors["base"] = "invalid_selection"
             else:
@@ -96,10 +96,10 @@ class DisplayOptionsFlow(config_entries.OptionsFlow):
         errors = {}
         if user_input is not None:
             try:
-                validate_selection(user_input["entities"])
+                validate_selection(user_input.get("entities", []))
             except ValueError:
                 errors["base"] = "invalid_selection"
             else:
-                return self.async_create_entry(title="", data={**self.config_entry.options, **user_input})
+                return self.async_create_entry(title="", data={**self.config_entry.options, **user_input, "entities": validate_selection(user_input.get("entities", []))})
         current = self.config_entry.options.get("entities", self.config_entry.data["entities"])
         return self.async_show_form(step_id="init", data_schema=selection_schema(current), errors=errors)

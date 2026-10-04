@@ -107,7 +107,7 @@ static void renderMqttBand(unsigned band,bool stale) {
 }
 static void updateMqttDisplay() {
   using namespace RackMqtt;
-  if(!config.enabled||!snapshot.valid){if(mqttShowing){displayRow=0;mqttShowing=false;}mqttPaintRow=320;mqttPage=0;mqttPageStarted=millis();updateDisplayDemo();return;}
+  if(!config.enabled||!snapshot.valid||snapshot.count==0){if(mqttShowing){displayRow=0;mqttShowing=false;}mqttPaintRow=320;mqttPage=0;mqttPageStarted=millis();updateDisplayDemo();return;}
   if(!mqttCanvas){mqttCanvas=new GFXcanvas16(240,80);if(!mqttCanvas||!mqttCanvas->getBuffer()){delete mqttCanvas;mqttCanvas=nullptr;updateDisplayDemo();return;}}
   bool stale=!connected||sequence==0||uint32_t(millis()-snapshot.received)>snapshot.ttl*1000;
   bool pageChanged=false;
@@ -126,4 +126,5 @@ static void updateMqttDisplay() {
   if(row==0)renderMqttBand(mqttPaintRow/80,mqttWasStale);
   display.drawRGBBitmap(0,mqttPaintRow,mqttCanvas->getBuffer()+row*240,240,2);
   mqttPaintRow+=2;
+  if(mqttPaintRow>=320)backlightFrameReady();
 }

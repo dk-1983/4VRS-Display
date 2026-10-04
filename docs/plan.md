@@ -1,15 +1,9 @@
-# План развития
+# Roadmap / План развития
 
-Реализовано: MQTT-карточки до 20 сущностей, группировка по помещениям,
-web-настройки на двух языках, встроенная заставка и подписанные OTA-обновления.
+Firmware 1.0.0 includes MQTT room cards, web settings, signed OTA, FAT32 SD photo/GIF playback, browser media uploads and per-file slideshow timing. Home Assistant integration 0.4.3 supports optional entities, brightness and MAC diagnostics.
 
-Планируются:
+Next steps: HA-side media management, richer playlists, local sensors and physical-button navigation. Video/audio are not implemented. Scope and hardware support will be agreed before development.
 
-- GIF-заставки, плейлисты и воспроизведение медиа с microSD.
-- Передача изображений по HTTP из web и Home Assistant.
-- Самостоятельный режим фоторамки с пользовательским контентом.
-- Поддержка локальных датчиков и трёх физических кнопок.
+В 1.0.0 реализованы MQTT-карточки по помещениям, web-настройки, подписанные OTA, фото/GIF с FAT32 SD, загрузка из браузера и индивидуальное время файлов в слайд-шоу. Интеграция HA 0.4.3 поддерживает сопряжение без сущностей, яркость и диагностику MAC.
 
-Приоритет и формат этих функций могут уточняться. Они не входят в возможности
-текущего релиза. MQTT предназначен для состояний и управления, а будущие файлы
-медиа будут передаваться отдельным механизмом.
+Далее: управление медиа из HA, расширенные плейлисты, локальные датчики и физические кнопки. Видео и звук не реализованы. Объём работы и поддерживаемое оборудование согласуются перед разработкой.

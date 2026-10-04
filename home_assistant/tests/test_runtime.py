@@ -148,3 +148,71 @@ class RuntimeTests(unittest.IsolatedAsyncioTestCase):
         caps["session"]="c"*32
         await self.runtime.capabilities(types.SimpleNamespace(payload=json.dumps(caps)))
         self.assertEqual(self.runtime.update_status,{})
+
+    async def test_backlight_confirmed_and_web_state(self):
+        import asyncio
+        caps = {"schema":1,"device_id":"test","session":"a"*32,"max_cards":20,"request_id":self.runtime.request_id,"backlight_v":1,"brightness_percent":100}
+        await self.runtime.capabilities(types.SimpleNamespace(payload=json.dumps(caps)))
+        self.assertEqual(self.runtime.brightness,100)
+        task=asyncio.create_task(self.runtime.set_brightness(25))
+        await asyncio.sleep(0)
+        command=self.sent[-1]
+        self.assertEqual(command[1]["brightness_percent"],25)
+        self.assertFalse(command[2]["retain"])
+        self.assertEqual(self.runtime.brightness,100)  # no optimistic confirmation
+        state={"schema":1,"device_id":"test","session":"b"*32,"command_seq":command[1]["command_seq"],"brightness_percent":25,"result":"accepted"}
+        self.runtime.receive_backlight(types.SimpleNamespace(payload=json.dumps(state)))
+        self.assertFalse(task.done())
+        state["session"]="a"*32
+        self.runtime.receive_backlight(types.SimpleNamespace(payload=json.dumps(state)))
+        await task
+        self.assertEqual(self.runtime.brightness,25)
+        state.update(command_seq=0,brightness_percent=0,result="state")
+        self.runtime.receive_backlight(types.SimpleNamespace(payload=json.dumps(state)))
+        self.assertEqual(self.runtime.brightness,0)
+        await self.runtime.heartbeat(None)
+        self.assertEqual(len([v for v in self.sent if v[1].get("request")=="backlight"]),1)
+        state["brightness_percent"]=True
+        self.runtime.receive_backlight(types.SimpleNamespace(payload=json.dumps(state)))
+        self.assertEqual(self.runtime.brightness,0)
+
+    async def test_backlight_validation_disconnect_and_rejection(self):
+        import asyncio
+        for value in [-1,101,1.5,True,"50",float("nan")]:
+            with self.assertRaises(ValueError):await self.runtime.set_brightness(value)
+        with self.assertRaises(ConnectionError):await self.runtime.set_brightness(50)
+        await self.connect()
+        self.runtime.backlight_supported=True
+        task=asyncio.create_task(self.runtime.set_brightness(50));await asyncio.sleep(0)
+        seq=self.sent[-1][1]["command_seq"]
+        state={"schema":1,"device_id":"test","session":"a"*32,"command_seq":seq,"brightness_percent":100,"result":"storage_error"}
+        self.runtime.receive_backlight(types.SimpleNamespace(payload=json.dumps(state)))
+        with self.assertRaises(ValueError):await task
+        task=asyncio.create_task(self.runtime.set_brightness(50));await asyncio.sleep(0)
+        self.runtime.availability(types.SimpleNamespace(payload="offline"))
+        with self.assertRaises(ConnectionError):await task
+        self.assertIsNone(self.runtime.brightness)
+        self.assertFalse(self.runtime.backlight_pending)
+
+    async def test_mac_address_from_matching_capabilities(self):
+        caps = {'schema': 1, 'device_id': 'test', 'session': 'a'*32, 'max_cards': 20, 'request_id': self.runtime.request_id, 'mac_address': '1c:9d:c2:fd:6f:70'}
+        await self.runtime.capabilities(types.SimpleNamespace(payload=json.dumps(caps)))
+        self.assertEqual(self.runtime.mac_address, '1C:9D:C2:FD:6F:70')
+        caps['mac_address'] = 'invalid'
+        await self.runtime.capabilities(types.SimpleNamespace(payload=json.dumps(caps)))
+        self.assertIsNone(self.runtime.mac_address)
+        del caps['mac_address']
+        await self.runtime.capabilities(types.SimpleNamespace(payload=json.dumps(caps)))
+        self.assertIsNone(self.runtime.mac_address)
+
+    async def test_empty_selection_on_old_and_new_firmware(self):
+        self.runtime.entities = []
+        await self.connect()
+        self.assertEqual(self.runtime.status, 'idle')
+        self.assertFalse(any(t.endswith('/snapshot') for t, _, _ in self.sent))
+        await self.runtime.heartbeat(None)
+        self.assertTrue(self.sent[-1][0].endswith('/request'))
+        caps = {'schema': 1, 'device_id': 'test', 'session': 'a'*32, 'max_cards': 20, 'request_id': self.runtime.request_id, 'empty_snapshot_v': 1}
+        await self.runtime.capabilities(types.SimpleNamespace(payload=json.dumps(caps)))
+        self.assertEqual(self.sent[-1][1]['cards'], [])
+        self.assertTrue(self.sent[-1][0].endswith('/snapshot'))

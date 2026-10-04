@@ -34,7 +34,7 @@ class PayloadTests(unittest.TestCase):
         self.assertEqual(result['cards'][0]['state'], 'idle')
 
     def test_selection_limits_and_topic_injection(self):
-        for entities in ([], ['sensor.a']*2, ['sensor.a']*4, ['sensor.a/#'], ['sensor.a\n'], 'sensor.a'):
+        for entities in ( ['sensor.a']*2, ['sensor.a']*4, ['sensor.a/#'], ['sensor.a\n'], 'sensor.a'):
             with self.assertRaises(ValueError):
                 self.encode(entities)
 

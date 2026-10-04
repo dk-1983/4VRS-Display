@@ -1,66 +1,82 @@
-# Первый запуск
+# User guide / Руководство пользователя
 
-## Прошивка по UART
+Firmware **1.0.0** · Home Assistant integration **0.4.3**
 
-Скачайте `4vrs-display-0.4.3-factory.bin` из
-[релиза](https://github.com/dk-1983/4VRS-Display/releases/tag/firmware-v0.4.3).
-В утилите Espressif выберите обычный ESP32, загрузите factory-образ по адресу
-**0x0**. Образ предназначен для первоначальной установки и заменяет данные
-в используемой области flash. Для обновления настроенного прибора используйте OTA.
+## First setup
 
-Включите загрузчик платы, выполните запись, дождитесь проверки данных и нажмите
-RESET без удержания BOOT/PGM. Распиновка — в [описании оборудования](hardware.md).
+1. For a new device, flash `4vrs-display-1.0.0-factory.bin` at **0x0** using an ESP32-compatible UART tool. Factory flashing replaces the image region; use OTA for configured devices. Reset normally after successful verification.
+2. Join `4vrs-rack-<id>-setup`, password `KIaE18TTn4Omp8H-0peXAk1i`, and open **http://192.168.4.1/**. Select your 2.4 GHz Wi-Fi and enter its password.
+3. Find the device IP in your router. Sign in to its web interface with initial **admin / admin**, then change these credentials under **Settings → Access and language**. English is the default; Russian is selectable.
+4. For telemetry, configure the MQTT broker and pair the [Home Assistant integration](home-assistant.md). Pairing with zero entities is supported. For standalone media, MQTT and HA are optional.
 
-## Wi-Fi
+The setup access point turns off after stable LAN connectivity. Wi-Fi, web and ArduinoOTA credentials are separate and persist through updates. The About page shows the station MAC for DHCP reservations, firmware version and display diagnostics.
 
-1. Подключитесь к сети `4vrs-rack-<id>-setup`.
-2. Пароль точки настройки: `KIaE18TTn4Omp8H-0peXAk1i`.
-3. Откройте **http://192.168.4.1/**, выберите Wi-Fi 2,4 ГГц и введите пароль сети.
-4. Найдите выданный устройству адрес в DHCP-клиентах роутера и откройте его в браузере.
+## Network and display
 
-После стабильного подключения к LAN точка настройки выключается. Адрес прибора
-можно закрепить на DHCP-сервере по MAC. При длительной потере Wi-Fi доступен
-режим восстановления настройки.
+**Settings → Network → Wi-Fi** scans nearby networks and lets you switch networks without reflashing. The module tries the new credentials after restart. If it cannot obtain an IP within 60 seconds, it restarts with the previous network. If neither network is available, setup Wi-Fi provides recovery. The IP may change.
 
-## Web-интерфейс
+IPv4 can use DHCP or a static address, mask, gateway and DNS. A new static configuration must be confirmed through its LAN address within three minutes or it rolls back. Static settings are retained when changing Wi-Fi: switch to DHCP first if the new network uses another subnet.
 
-Первоначальный логин и пароль: **admin / admin**. В Settings можно изменить их
-и выбрать English или Русский. Пароли web, Wi-Fi и ArduinoOTA независимы.
-В Settings → ArduinoOTA задаётся индивидуальный пароль обновления по LAN.
+**Settings → Device** changes the module name without changing its MQTT ID. **Display** controls brightness, room covers and **Show telemetry**. Initial brightness is 50% if no user value exists; 0 turns the backlight off. Room covers are always skipped for one room. With several rooms, the cover switch is respected; each page contains only one room's entities.
 
-В MQTT введите адрес брокера без `http://`, порт, пользователя и пароль.
-`connected: true` означает соединение с брокером, но ещё не получение карточек
-от HA. Для этого требуется [добавить устройство в интеграцию](home-assistant.md).
-При отключённом MQTT используется встроенная заставка.
+Turning telemetry off preserves MQTT and entity selection, but shows media. An empty entity list also allows media mode. Returning to available telemetry exits automatic media playback. Explicit media previews remain available.
 
-## Если данные не появились
+## Media library
 
-Проверьте брокер на приборе и в HA, Device ID и pairing key, список выбранных
-сущностей и состояние доставки. `has_snapshot: false` означает, что снимок
-данных ещё не принят. Не удаляйте сопряжение для обычного изменения списка.
+Open **Settings → Multimedia → Media library**. A FAT32 SD card is required for custom media; 16 GB cards have been tested. Wire the module's separate SD connector as described in [hardware](hardware.md). The firmware never formats the card.
 
-## Экран и статический адрес
+- Photos: JPEG, PNG and BMP are converted in your browser to a 240×320 24-bit BMP. Proportions are preserved with black margins. The original photo is not uploaded. Browser input limit: 20 MB / 25 megapixels.
+- GIF: uploaded unchanged, maximum **240×320 and 256 KiB**. Smaller animations are centered. Complex full-frame animations run slower than small blinking or moving regions at the fixed 1 MHz SPI clock.
+- Names: Latin letters, digits, hyphens and underscores; existing names are never overwritten. Photos live in `/4vrs/photos/`, animations in `/4vrs/animations/`.
+- Upload, preview, show and delete are available per file. Stop playback before deleting the currently displayed file. The library displays up to 64 files.
+- Uploads use temporary files and become visible after completion and header checks. Cancellation removes the temporary upload; a power loss can leave a `.part` file in `/4vrs/cache/`. Header checks cannot guarantee decoding of every third-party GIF.
 
-В **Settings → Show room covers** можно выключить заставки названия/иконки
-комнаты. Название остаётся в заголовке страниц, разные помещения не смешиваются.
-Выбор сохраняется после перезапуска и OTA.
+Each file has **Show for** (1–3600 seconds) and **Include in slideshow**. GIFs also have **Speed** (25–400%; 100% uses the encoded pauses). Save stores these preferences on SD and applies them immediately. Display transfer time still limits actual speed.
 
-**IPv4 settings** доступны с главной страницы и из точки настройки Wi-Fi.
-DHCP включён по умолчанию. Для статического режима задайте IP, маску, шлюз и DNS.
-Резервный DNS необязателен; в изолированной сети можно не указывать шлюз и DNS.
-Без рабочего DNS/интернета обновления GitHub недоступны. Выберите свободный IP
-вне динамического пула или зарезервируйте его. Не используйте подсеть точки
-настройки 192.168.4.0/24. Поддерживаются обычные подсети с маской /1–/30,
-не пересекающиеся с подсетью точки настройки.
+Enable **Slideshow** to cycle included files in filename order. Timing begins when the first frame has finished drawing; switching may occur midway through a GIF loop. With slideshow disabled, the selected file remains displayed. **Stop playback** pauses for the current session. Selecting a file or enabling slideshow resumes it. Slideshow and selected media survive restart and OTA. Up to 128 directory entries are scanned when choosing the next file.
 
-После **Apply and test** откройте `/network` по новому LAN-адресу и нажмите
-**Confirm connection** в течение трёх минут. В режиме DHCP новый адрес можно
-посмотреть в роутере или на странице IPv4 через точку настройки Wi-Fi.
-Без подтверждения устройство перезагрузится с прежней адресацией. Отключение
-питания до подтверждения также сохраняет прежние настройки. Во время проверки
-точка настройки остаётся включённой и OTA приостановлена. Изменение адреса
-не меняет SSID, пароль Wi-Fi или MQTT. При первом запуске сначала выберите Wi-Fi.
+The built-in portrait and `4vrs-test.gif` are demonstrations for devices without user media. They are excluded from automatic presentation when supported custom files exist, including at startup. Manual demo preview remains available. If all custom files are unchecked, the demo is not substituted; a stopped or empty media selection can leave a blank screen.
 
-В **About → Check display** доступна проверка ответа регистров контроллера.
-Для неё нужен SDO/MISO → GPIO19; для обычного вывода изображения этот провод
-не обязателен. Отсутствие ответа само по себе не означает поломку матрицы.
+Video/audio, HA-side media upload and physical-button navigation are not implemented. Decorative animation lights do not represent live telemetry.
+
+## Updates
+
+Use `4vrs-display-1.0.0.bin` for OTA, never the factory image. The display shows update progress. LAN ArduinoOTA and signed GitHub updates remain available during media playback. See [update behavior and per-device blocking](updates.md).
+
+## Первый запуск
+
+Для новой платы запишите `4vrs-display-1.0.0-factory.bin` через UART по адресу **0x0** и перезапустите без BOOT. Для настроенной платы используйте OTA. Подключитесь к `4vrs-rack-<id>-setup`, пароль `KIaE18TTn4Omp8H-0peXAk1i`, откройте **http://192.168.4.1/** и выберите Wi-Fi 2,4 ГГц.
+
+Найдите IP в роутере. Начальный web-вход **admin / admin**; смена пароля и языка — **Настройки → Доступ и язык**. По умолчанию английский. Для телеметрии настройте брокер MQTT и интеграцию HA; список сущностей может быть пустым. Для фоторамки HA и MQTT не обязательны. MAC станции, версия и диагностика дисплея находятся в **О модуле**.
+
+## Сеть и экран
+
+**Настройки → Сеть → Wi-Fi** позволяет найти и выбрать другую сеть. После перезапуска новая сеть проверяется 60 секунд; если IP не получен, возвращаются прежние настройки. При недоступности обеих сетей остаётся точка настройки. Новый IP может отличаться.
+
+Для статического IPv4 задаются адрес, маска, шлюз и DNS. Новые параметры нужно подтвердить через LAN за три минуты, иначе произойдёт откат. При смене Wi-Fi статические параметры сохраняются; для другой подсети сначала включите DHCP.
+
+Имя модуля меняется в **Устройство**, MQTT ID не меняется. В **Экран** находятся яркость, заставки комнат и **Показывать телеметрию**. Начальная яркость — 50%, если значение ещё не сохранено; 0 выключает подсветку. При одной комнате заставка всегда пропускается, при нескольких действует переключатель. Комнаты на страницах не смешиваются.
+
+Выключение телеметрии сохраняет MQTT и сущности, но показывает медиа. Пустой список сущностей также включает медиарежим. При возвращении доступной телеметрии автоматический медиапоказ завершается; ручной предпросмотр доступен отдельно.
+
+## Медиатека
+
+Откройте **Настройки → Мультимедиа → Медиатека**. Нужна FAT32-карта; проверены 16 ГБ. Отдельные контакты SD подключаются по [схеме](hardware.md). Прошивка карту не форматирует.
+
+Фото JPEG/PNG/BMP преобразуются браузером в BMP 240×320 с сохранением пропорций и чёрными полями. Исходное фото не загружается; предел исходника — 20 МБ / 25 мегапикселей. GIF передаётся без изменений: **до 240×320 и 256 КиБ**. На SPI 1 МГц лучше работают анимации с небольшими меняющимися участками.
+
+Имена — латиница, цифры, дефисы, подчёркивания. Фото сохраняются в `/4vrs/photos/`, GIF — в `/4vrs/animations/`. Совпадающие имена не перезаписываются. Доступны загрузка, предпросмотр, показ и удаление; текущий файл перед удалением нужно остановить. Список показывает до 64 файлов.
+
+Незавершённая загрузка не появляется в списке. Отмена удаляет временный файл; после обрыва питания в `/4vrs/cache/` может остаться `.part`. Проверка заголовка не гарантирует декодирование любого стороннего GIF.
+
+Для каждого файла задаются **время показа** (1–3600 секунд), **участие в слайд-шоу**, для GIF ещё **скорость** (25–400%; 100% — исходные паузы). Настройки сохраняются на SD и применяются сразу. Реальная скорость ограничена передачей пикселей на экран.
+
+**Слайд-шоу** чередует отмеченные файлы по имени. Время отсчитывается после отрисовки первого кадра, переход возможен посреди GIF-цикла. Без слайд-шоу выбранный файл показывается постоянно. **Остановить просмотр** приостанавливает показ до запуска файла, включения слайд-шоу или перезапуска. Выбранное медиа и режим переживают OTA. При выборе следующего файла проверяется до 128 записей каталогов.
+
+Встроенный портрет и `4vrs-test.gif` — демонстрации для устройства без собственных изображений. При наличии поддерживаемых пользовательских файлов они не выбираются автоматически, в том числе при запуске. Ручной тест демо доступен. Если снять все свои файлы со слайд-шоу, демка не подставляется вместо них; остановленный или пустой медиапоказ может оставлять чёрный экран.
+
+Видео, звук, загрузка медиа из HA и физические кнопки пока не реализованы. Мигающие лампочки в заставках — оформление, а не показания реальных устройств.
+
+## Обновление
+
+Для OTA используется `4vrs-display-1.0.0.bin`, не factory-образ. На дисплее показывается прогресс. ArduinoOTA и подписанные обновления GitHub доступны при воспроизведении. [Блокировка автообновлений и проверка запуска](updates.md).

@@ -12,7 +12,7 @@
       },
       "entities": {
         "title": "First data",
-        "description": "Select one to twenty entities. The delivery sensor reports acceptance by the display.",
+        "description": "Without selected entities, only Photo & Multimedia is available. You can add up to 20 entities later in the integration settings.",
         "data": {
           "entities": "Displayed entities"
         }
@@ -22,7 +22,7 @@
       "invalid_identity": "Check the device ID and 32-character key.",
       "mqtt_unavailable": "Connect the Home Assistant MQTT integration first.",
       "cannot_connect": "The device did not confirm the pairing key. Check broker, display settings and topic permissions.",
-      "invalid_selection": "Select one to twenty different entities."
+      "invalid_selection": "Select up to 20 different entities, or leave the list empty."
     },
     "abort": {
       "already_configured": "This display is already configured."
@@ -32,20 +32,30 @@
     "step": {
       "init": {
         "title": "Display entities",
-        "description": "Select one to twenty entities. Saving sends a new snapshot; check the delivery sensor for acceptance.",
+        "description": "Without selected entities, only Photo & Multimedia is available. You can add up to 20 entities later in the integration settings.",
         "data": {
           "entities": "Entities"
         }
       }
     },
     "error": {
-      "invalid_selection": "Select one to twenty different entities."
+      "invalid_selection": "Select up to 20 different entities, or leave the list empty."
     }
   },
   "entity": {
     "switch": {
       "auto_update": {
         "name": "Automatic updates"
+      }
+    },
+    "number": {
+      "backlight_brightness": {
+        "name": "Backlight brightness"
+      }
+    },
+    "sensor": {
+      "mac_address": {
+        "name": "Wi-Fi MAC address"
       }
     }
   }

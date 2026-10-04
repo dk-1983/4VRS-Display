@@ -18,4 +18,9 @@ jobs:
           node-version: "20"
       - run: node tools/test_display_ui.mjs
       - run: node tools/test_settings_ui.mjs
+      - run: node tools/test_wifi_ui.mjs
+      - run: node tools/test_gif_ui.mjs
+      - run: node tools/test_media_ui.mjs
       - run: g++ -std=c++17 tools/test_ipv4.cpp -o /tmp/test_ipv4 && /tmp/test_ipv4
+      - run: g++ -std=c++17 tools/test_backlight.cpp -o /tmp/test_backlight && /tmp/test_backlight
+      - run: g++ -std=c++17 -fconstexpr-ops-limit=100000000 tools/test_pagination.cpp -o /tmp/test_pagination && /tmp/test_pagination

@@ -6,13 +6,13 @@
 
 **Small display. Big possibilities.**
 
-4VRS Display is an open-source ESP32 display for Home Assistant. It brings room temperatures, humidity, lighting, ventilation, water-leak alerts and other entity states to a compact screen wherever you need them: a living room, garage or server room.
+4VRS Display is an open-source ESP32 telemetry display and standalone photo frame. It brings room temperatures, humidity, lighting, ventilation, water-leak alerts and other entity states to a compact screen wherever you need them: a living room, garage or server room.
 
 Choose the entities in Home Assistant; the integration sends their states through MQTT, and the display groups them by room. Configure the device in your browser and update its firmware over Wi-Fi without removing it from its installation.
 
-**Stable firmware: 0.4.4 · Home Assistant integration: 0.4.0 · License: MIT**
+**Stable firmware: 1.0.0 · Home Assistant integration: 0.4.3 · License: MIT**
 
-[Download the release](https://github.com/dk-1983/4VRS-Display/releases/tag/firmware-v0.4.4) · [Report an issue](https://github.com/dk-1983/4VRS-Display/issues)
+[Download the release](https://github.com/dk-1983/4VRS-Display/releases/tag/firmware-v1.0.0) · [Report an issue](https://github.com/dk-1983/4VRS-Display/issues)
 
 ## Features
 
@@ -22,7 +22,10 @@ Choose the entities in Home Assistant; the integration sends their states throug
 - **Data freshness indicators** that distinguish unavailable, unknown and stale data from an inactive device.
 - **Local web configuration** for Wi-Fi, MQTT, language, credentials and updates, with an About page for device information.
 - **English by default and Russian as an option** in the web interface.
-- **A built-in static screensaver** stored in firmware, usable without a memory card.
+- **Standalone photo frame and GIF player** with browser uploads, previews, deletion and per-file slideshow settings on FAT32 SD.
+- **A built-in fallback artwork** for devices without user media; demonstrations are skipped when custom media exists.
+- **Brightness control from web and HA**, 50% initial default, a dark startup and smooth fade after the first image.
+- **Wi-Fi switching with rollback**, optional static IPv4 and editable device names.
 - **LAN ArduinoOTA and signed GitHub updates**, with two application slots, boot validation and rollback support.
 - **Per-device automatic-update controls** in the web interface and Home Assistant integration.
 
@@ -38,7 +41,7 @@ GitHub release → signed update feed → firmware update
 
 Each display has its own identity, pairing key and entity selection. Room membership comes from the entity's area, then its device's area; entities without an area form a separate group.
 
-For example, a room with five entities shows its cover, then pages of **3 + 2** cards. A second room with four entities shows its own cover, then **3 + 1**. The sequence repeats automatically. Room covers last three seconds and card pages eight seconds.
+For example, a room with five entities shows its cover, then pages of **3 + 2** cards. A second room with four entities shows its own cover, then **3 + 1**. The sequence repeats automatically. Room covers last three seconds and card pages eight seconds. Covers can be disabled and are automatically skipped for a single room.
 
 The integration sends snapshots when states change and every 30 seconds. After 90 seconds without a fresh snapshot, the display marks the data as stale.
 
@@ -58,6 +61,17 @@ The current firmware targets **ESP32-WROVER with 4 MiB PSRAM**, the **NADIM V5**
 
 A touchscreen and microSD card are not required. GPIO signals use 3.3 V logic; follow the display module's power specifications and connect GPIO4 to the module's LED control input, which drives its onboard transistor.
 
+### SD card connection
+
+| SD connector signal | ESP32 GPIO |
+| --- | --- |
+| SD_MOSI / MOSI | 23 |
+| SD_MISO / MISO | 19 |
+| SD_SCK / CLK | 18 |
+| SD_CS / CS | 25 |
+
+The SD socket on the display module has a **separate connector**: wire all four signals explicitly; they are not connected to the TFT header internally. TFT and SD share MOSI, MISO and SCK, but use separate CS lines (TFT: GPIO13, SD: GPIO25). The socket receives power through the display module. User media requires a FAT32 card; 16 GB microSD cards in full-size SD adapters have been tested. MISO is required for SD even if TFT diagnostics are not used.
+
 ## Manufacturer documentation
 
 - [LCDWIKI: 2.4-inch SPI ILI9341 module](https://www.lcdwiki.com/2.4inch_SPI_Module_ILI9341_SKU:MSP2402) — module schematic, user manual and mechanical drawings.
@@ -68,7 +82,7 @@ A touchscreen and microSD card are not required. GPIO signals use 3.3 V logic; f
 
 ## First setup
 
-1. Download `4vrs-display-0.4.4-factory.bin` from the release. For the initial UART installation, select **ESP32** in the Espressif flashing tool and write the factory image at **0x0**. This replaces data in the image's flash region; use OTA for an already configured device.
+1. Download `4vrs-display-1.0.0-factory.bin` from the release. For the initial UART installation, select **ESP32** in the Espressif flashing tool and write the factory image at **0x0**. This replaces data in the image's flash region; use OTA for an already configured device.
 2. Enter the board's bootloader mode, flash the image, wait for verification, then reset normally without holding BOOT/PGM.
 3. Connect to the setup Wi-Fi network `4vrs-rack-<id>-setup`. Its password is **`KIaE18TTn4Omp8H-0peXAk1i`**.
 4. Open **http://192.168.4.1/**, select your **2.4 GHz Wi-Fi** network and enter its password.
@@ -76,15 +90,15 @@ A touchscreen and microSD card are not required. GPIO signals use 3.3 V logic; f
 6. Sign in with **username `admin`, password `admin`**. Change these in **Settings**, where you can also select the interface language. Web, Wi-Fi and ArduinoOTA credentials are separate.
 7. Open **MQTT** and enter your broker's host without `http://`, port, username and password. Use the same broker as Home Assistant.
 
-When MQTT is disabled, the built-in screensaver is displayed.
+Without telemetry entities, the display uses selected media or the built-in fallback. MQTT is optional for standalone media use.
 
 ## Home Assistant integration
 
 1. Configure Home Assistant's MQTT integration.
-2. Download `fourvrs_display-0.4.0.zip` from the release and copy its `custom_components/fourvrs_display` directory into your HA configuration's `custom_components` directory.
+2. Download `fourvrs_display-0.4.3.zip` from the release and copy its `custom_components/fourvrs_display` directory into your HA configuration's `custom_components` directory.
 3. Restart Home Assistant and add the **4VRS Display** integration.
 4. Enter the **Device ID** and **pairing key** shown on this display's authenticated MQTT configuration page.
-5. Select **1–20 different entities** and save. Their states and room information will be sent to the display.
+5. Select **0–20 different entities** and save. Their states and room information will be sent to the display.
 
 To edit the selection later, open **Settings → Devices & services → Integrations → 4VRS Display** and use the integration entry's **gear icon**. You do not need to delete and recreate the connection. The pencil on the device page edits device metadata, not the displayed entity list.
 
@@ -92,15 +106,21 @@ To edit the selection later, open **Settings → Devices & services → Integrat
 
 ## Firmware updates
 
-Use the **application image** `4vrs-display-0.4.4.bin` for OTA; the factory image is for initial UART installation. ArduinoOTA remains available on the local network, with an individual password configurable in **Settings → ArduinoOTA**.
+Use the **application image** `4vrs-display-1.0.0.bin` for OTA; the factory image is for initial UART installation. ArduinoOTA remains available on the local network, with an individual password configurable in **Settings → ArduinoOTA**.
 
 GitHub updates use a signed stable manifest. Before installation, the firmware checks the signature, hardware profile, version, image size and SHA-256 digest. It writes to the inactive application slot and validates the next boot, with rollback support for failed startup.
 
 Automatic updates are enabled by default and can be blocked for an individual display through the web interface or Home Assistant. Either block prevents automatic installation. Once HA manages the update policy, fresh permission from HA is required. A new source commit alone does not trigger installation: an update must be published through the signed stable feed.
 
-## Planned capabilities
+## Photo frame and animations
 
-The next stages include GIF playback and 4VRS animations, user media on microSD, media upload through the web interface, a standalone photo-frame mode, local sensors and navigation using three physical buttons. These are planned features, not functions of the current release. The embedded image will remain the fallback when user media is unavailable.
+Open **Settings → Multimedia → Media library**. Upload JPEG, PNG or BMP photos, or GIF animations. Photos are converted in your browser to 240×320 BMP with preserved proportions and black margins. GIFs remain unchanged: **maximum 240×320 and 256 KiB per file**. A FAT32 SD card is required for user media; 16 GB cards have been tested.
+
+Enable **Slideshow** and select the files to include. Each file has its own duration (1–3600 seconds); GIF speed is adjustable from 25–400%. Settings survive restart and OTA. The display's 1 MHz SPI transfer limits actual frame rate: small animated regions work best. Disable **Show telemetry** to keep receiving MQTT while viewing media. No selected HA entities also permits media mode.
+
+Wire the display module's **separate SD connector**: MOSI→23, MISO→19, CLK→18, CS→25. These pins are not internally connected to the TFT header. The firmware creates media folders and never formats the card. The library lists up to 64 files; photos are stored under `/4vrs/photos/`, GIFs under `/4vrs/animations/`. Existing filenames are not overwritten. The built-in portrait and original demo are fallback assets, not ordinary playlist content when user files exist.
+
+Video/audio playback, media upload from HA, local sensors, and physical-button navigation are not implemented. File timing and slideshow are controlled from the device web interface. Decorative sample animations do not represent live device readings.
 
 ## Development and documentation
 
@@ -113,10 +133,10 @@ The next stages include GIF playback and 4VRS animations, user media on microSD,
 | `assets/` | Images and project artwork |
 | `docs/` | User and development guides |
 
-The build uses Arduino CLI, Arduino-ESP32 **3.3.8**, Adafruit GFX and Adafruit ILI9341 with their dependencies. Supply your Arduino CLI configuration file:
+The build uses Arduino CLI, Arduino-ESP32 **3.3.8**, Adafruit GFX, Adafruit ILI9341 and AnimatedGIF **2.2.0** with their dependencies. Supply your Arduino CLI configuration file:
 
 ```sh
-python tools/build.py --config <arduino-cli.yaml> --version 0.4.4
+python tools/build.py --config <arduino-cli.yaml> --version 1.0.0
 ```
 
 Run the integration and release checks:
@@ -127,13 +147,13 @@ python -m pip install -r tools/requirements-release.txt
 python tools/test_release.py
 ```
 
-Detailed guides are currently in Russian: [first setup](docs/user-guide.md), [hardware](docs/hardware.md), [Home Assistant](docs/home-assistant.md), [updates](docs/updates.md), [development](docs/development.md) and [roadmap](docs/plan.md). The full Russian version of this overview is available through the language link at the top.
+Detailed guides (some currently in Russian): [first setup](docs/user-guide.md), [hardware](docs/hardware.md), [Home Assistant](docs/home-assistant.md), [updates](docs/updates.md), [development](docs/development.md) and [roadmap](docs/plan.md). The full Russian version of this overview is available through the language link at the top.
 
 Bug reports and contributions are welcome. Include component versions, hardware details and steps to reproduce; remove passwords and pairing keys from logs before sharing them.
 
 ## License
 
-Original project code and documentation are distributed under the [MIT License](LICENSE). Third-party libraries retain their own licenses.
+Original project code and documentation are distributed under the [MIT License](LICENSE). Third-party libraries retain their own licenses. Third-party branding in optional sample artwork remains the property of its owners and is not covered by a trademark grant under MIT.
 
 ### Display and network preferences
 

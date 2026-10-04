@@ -1,4 +1,4 @@
-# Интеграция Home Assistant 0.4.0
+# Интеграция Home Assistant 0.4.3
 
 [Установка, сопряжение и выбор сущностей](../docs/home-assistant.md).
 

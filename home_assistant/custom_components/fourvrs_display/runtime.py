@@ -2,6 +2,7 @@
 import asyncio
 from datetime import timedelta
 import json
+import re
 import time
 import uuid
 
@@ -23,17 +24,23 @@ class DisplayRuntime:
         self.entities = validate_selection(entry.options.get("entities", entry.data["entities"]))
         self.base = f"4vrs/display/{self.device_id}"
         self.session = None
+        self.empty_snapshot_supported = False
         self.presentation_supported = False
         self.areas_supported = False
         self.area_icons_supported = False
         self.update_supported = False
         self.update_status = {}
+        self.backlight_supported = False
+        self.brightness = None
+        self.backlight_seq = 0
+        self.backlight_pending = {}
         self.seq = self.ack_seq = 0
         self.last_ack = self.last_hello = 0.0
         self.waiting_since = time.monotonic()
         self.request_id = uuid.uuid4().hex
         self.status = "waiting"
         self.firmware = None
+        self.mac_address = None
         self.unsubs, self.listeners = [], set()
         self.pending = None
         self.lock = asyncio.Lock()
@@ -49,6 +56,7 @@ class DisplayRuntime:
             self.unsubs.append(await mqtt.async_subscribe(self.hass, self.base + "/capabilities", self.capabilities, qos=0))
             self.unsubs.append(await mqtt.async_subscribe(self.hass, self.base + "/ack", self.ack, qos=0))
             self.unsubs.append(await mqtt.async_subscribe(self.hass, self.base + "/update/status", self.receive_update_status, qos=0))
+            self.unsubs.append(await mqtt.async_subscribe(self.hass, self.base + "/backlight/status", self.receive_backlight, qos=0))
             self.unsubs.append(await mqtt.async_subscribe(self.hass, self.base + "/availability", self.availability, qos=0))
             self.unsubs.append(async_track_state_change_event(self.hass, self.entities, self.state_changed))
             self.unsubs.append(async_track_time_interval(self.hass, self.heartbeat, timedelta(seconds=30)))
@@ -73,16 +81,31 @@ class DisplayRuntime:
         if caps.get("request_id") == self.request_id:
             if caps["session"] != self.session:
                 self.update_status = {}
+                self.brightness = None
+                self.backlight_seq = 0
+                self.cancel_backlight()
                 self.session = caps["session"]
                 self.seq = self.ack_seq = 0
                 self.last_ack = 0.0
                 self.waiting_since = time.monotonic()
                 self.status = "sending"
+            mac = caps.get("mac_address")
+            self.mac_address = mac.upper() if isinstance(mac, str) and re.fullmatch(r"(?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}", mac) else None
+            self.empty_snapshot_supported = caps.get("empty_snapshot_v") == 1
             self.presentation_supported = caps.get("presentation_v") == 1
             self.areas_supported = caps.get("area_v") == 1 and type(caps.get("max_payload")) is int and caps["max_payload"] >= 15360
             self.area_icons_supported = self.areas_supported and caps.get("area_icon_v") == 1
             self.update_supported = caps.get("update_v") == 1
+            self.backlight_supported = caps.get("backlight_v") == 1
+            level = caps.get("brightness_percent")
+            if self.backlight_supported and type(level) is int and 0 <= level <= 100:
+                self.brightness = level
+            self.changed()
             self.firmware = caps.get("firmware")
+            if not self.entities and not self.empty_snapshot_supported:
+                self.status = "idle"
+                self.last_ack = time.monotonic()
+                self.changed()
             await self.publish_policy()
             await self.publish()
         elif caps["session"] != self.session and time.monotonic() - self.last_hello > 2:
@@ -112,6 +135,8 @@ class DisplayRuntime:
         if message.payload == "offline":
             self.status = "offline"
             self.session = None
+            self.brightness = None
+            self.cancel_backlight()
             self.changed()
 
     @callback
@@ -126,6 +151,12 @@ class DisplayRuntime:
 
     async def heartbeat(self, _):
         await self.publish_policy()
+        if not self.entities and not self.empty_snapshot_supported and self.session:
+            if time.monotonic() - self.last_ack > 90:
+                self.status = "stale"
+                self.changed()
+            await self.hello()
+            return
         if self.closed:
             return
         if not self.session or self.status in ("offline", "waiting"):
@@ -148,6 +179,54 @@ class DisplayRuntime:
             self.update_status=data
             self.changed()
 
+    def cancel_backlight(self):
+        for future in self.backlight_pending.values():
+            if not future.done():
+                future.set_exception(ConnectionError("Display disconnected"))
+        self.backlight_pending.clear()
+
+    @callback
+    def receive_backlight(self, message):
+        if self.closed or not isinstance(message.payload, str) or len(message.payload) > 1024:
+            return
+        try:
+            data = json.loads(message.payload)
+        except ValueError:
+            return
+        if not isinstance(data, dict) or data.get("schema") != 1 or not self.session or data.get("session") != self.session or data.get("device_id") != self.device_id:
+            return
+        level, seq, result = data.get("brightness_percent"), data.get("command_seq"), data.get("result")
+        if type(level) is not int or not 0 <= level <= 100 or type(seq) is not int or not 0 <= seq <= 0xffffffff or result not in ("state", "accepted", "stale_command", "storage_error"):
+            return
+        self.brightness = level
+        future = self.backlight_pending.get(seq)
+        if future and not future.done():
+            if result == "accepted":
+                future.set_result(level)
+            elif result != "state":
+                future.set_exception(ValueError("Display rejected brightness: " + result))
+        self.changed()
+
+    async def set_brightness(self, value):
+        if type(value) not in (int, float) or not 0 <= value <= 100 or int(value) != value:
+            raise ValueError("Brightness must be an integer from 0 to 100")
+        if self.closed or not self.session or not self.backlight_supported or self.status in ("offline", "stale", "waiting") or not mqtt.is_connected(self.hass):
+            raise ConnectionError("Display brightness control is unavailable")
+        if self.backlight_seq >= 0xffffffff:
+            raise ValueError("Reconnect the display session before sending more commands")
+        self.backlight_seq += 1
+        seq = self.backlight_seq
+        future = asyncio.get_running_loop().create_future()
+        self.backlight_pending[seq] = future
+        try:
+            message = {"schema": 1, "key": self.key, "session": self.session, "request": "backlight", "command_seq": seq, "brightness_percent": int(value)}
+            await mqtt.async_publish(self.hass, self.base + "/request", json.dumps(message), qos=0, retain=False)
+            await asyncio.wait_for(future, timeout=8)
+        finally:
+            self.backlight_pending.pop(seq, None)
+            if not future.done():
+                future.cancel()
+
     async def publish_policy(self):
         if self.closed or not self.session or not self.update_supported or not mqtt.is_connected(self.hass):
             return
@@ -157,6 +236,8 @@ class DisplayRuntime:
     async def publish(self):
         async with self.lock:
             if self.closed or not self.session or not mqtt.is_connected(self.hass):
+                return
+            if not self.entities and not self.empty_snapshot_supported:
                 return
             if self.seq >= 0xFFFFFFFF:
                 self.session = None
@@ -169,6 +250,7 @@ class DisplayRuntime:
             self.changed()
 
     def stop(self):
+        self.cancel_backlight()
         self.closed = True
         if self.pending:
             self.pending()

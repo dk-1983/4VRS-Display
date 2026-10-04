@@ -51,6 +51,7 @@ inline void show(RackUpdate::ScreenStage stage,unsigned percent) {
   display.fillRect(22,212,196,14,ILI9341_BLACK);
   if(numeric&&percent)display.fillRect(22,212,196*percent/100,14,ILI9341_CYAN);
   lastStage=stage;lastPercent=percent;paintedAt=millis();
+  backlightFrameReady();updateBacklight();
 }
 inline bool tick() {
   if(RackUpdate::busy||RackUpdate::restartRequested){

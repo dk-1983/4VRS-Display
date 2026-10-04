@@ -7,7 +7,7 @@
 #include "DeviceCredentials.h"
 #include "DemoImage.h"
 #include "SetupPage.h"
-#include "BacklightTest.h"
+#include "Backlight.h"
 #include "DisplayDemo.h"
 #include "UpdateService.h"
 #include "MqttService.h"
@@ -16,14 +16,15 @@
 #include "SettingsPage.h"
 #include "MqttDisplay.h"
 #include "UpdateDisplay.h"
+#include "GifPlayer.h"
 #include "MqttPage.h"
 #include "WebPages.h"
 #include "UpdatePage.h"
 
 
-// Portrait ILI9341 demo with constant backlight and preserved Wi-Fi/OTA.
+// Portrait ILI9341 demo with boot backlight fade and preserved Wi-Fi/OTA.
 #ifndef FOURVRS_VERSION
-#define FOURVRS_VERSION 0.4.4
+#define FOURVRS_VERSION 1.0.0
 #endif
 #define FOURVRS_STRING_INNER(x) #x
 #define FOURVRS_STRING(x) FOURVRS_STRING_INNER(x)
@@ -41,6 +42,7 @@ IPAddress lastIp;
 // Одна запись NVS сохраняет SSID и пароль вместе, включая случай сбоя питания.
 struct NetworkConfig { char ssid[33]; char password[64]; };
 NetworkConfig storedConfig{};
+bool wifiCandidateActive=false;
 bool scanRunning = false;
 String scanResult = "[]";
 volatile unsigned disconnectReason = 0;
@@ -108,16 +110,70 @@ bool mqttAdmin() {
 }
 #include "Ipv4ConfigChecks.h"
 #include "NetworkSettings.h"
+#include "WifiSettings.h"
+#include "MediaLibrary.h"
 void configureWeb() {
   NetworkSettings::configureWeb();
+  WifiSettings::configureWeb();
   const char *headers[] = {"X-CSRF-Token"};
   web.collectHeaders(headers, 1);
   WebSettings::begin();
+  MediaLibrary::configure();
   web.on("/settings",HTTP_GET,[](){
     if(!mqttAdmin())return;
     String page=FPSTR(SETTINGS_PAGE);page.replace("__TOKEN__",formToken);
     web.sendHeader("Cache-Control","no-store");
     web.send(200,"text/html; charset=utf-8",localizeWeb(page));
+  });
+  web.on("/settings/name",HTTP_GET,[](){
+    if(!mqttAdmin())return;
+    web.sendHeader("Cache-Control","no-store");
+    web.send(200,"application/json",String("{\"name\":")+jsonString(WebSettings::deviceName.c_str())+"}");
+  });
+  web.on("/settings/name",HTTP_POST,[](){
+    if(!mqttAdmin())return;
+    String body=web.arg("plain");cJSON *j=body.length()<=512?RackMqtt::parse(body.c_str(),body.length()):nullptr;
+    char token[65]{},name[129]{};
+    if(!j||!RackMqtt::textField(j,"token",token,sizeof(token))||formToken!=token){if(j)cJSON_Delete(j);web.send(403,"text/plain","Reload settings page.");return;}
+    bool valid=RackMqtt::textField(j,"name",name,sizeof(name));cJSON_Delete(j);
+    String value=name;value.trim();valid=valid&&value.length()>0;
+    for(unsigned i=0;i<value.length();++i)if(uint8_t(value[i])<32||uint8_t(value[i])==127)valid=false;
+    if(!valid){web.send(400,"text/plain","Invalid device name.");return;}
+    if(!WebSettings::ready||WebSettings::storage.putString("device_name",value)==0){web.send(503,"text/plain","Could not save name.");return;}
+    WebSettings::deviceName=value;
+    web.send(200,"application/json",String("{\"name\":")+jsonString(value.c_str())+"}");
+  });
+  web.on("/settings/backlight",HTTP_GET,[](){
+    if(!mqttAdmin())return;
+    web.sendHeader("Cache-Control","no-store");web.send(200,"application/json",backlightStatus());
+  });
+  web.on("/settings/backlight",HTTP_POST,[](){
+    if(!mqttAdmin())return;
+    String body=web.arg("plain");cJSON *j=body.length()<=256?RackMqtt::parse(body.c_str(),body.length()):nullptr;
+    char token[65]{};uint32_t percent;
+    if(!j||!RackMqtt::textField(j,"token",token,sizeof(token))||formToken!=token){if(j)cJSON_Delete(j);web.send(403,"text/plain","Reload settings page.");return;}
+    bool valid=RackMqtt::numberField(j,"brightness_percent",percent,0,100);cJSON_Delete(j);
+    if(!valid){web.send(400,"text/plain","Expected brightness 0..100.");return;}
+    if(!setBacklightPercent(percent)){web.send(503,"text/plain","Could not save brightness.");return;}
+    updateBacklight();web.sendHeader("Cache-Control","no-store");web.send(200,"application/json",backlightStatus());
+  });
+  web.on("/settings/telemetry",HTTP_GET,[](){
+    if(!mqttAdmin())return;web.sendHeader("Cache-Control","no-store");
+    web.send(200,"application/json",WebSettings::showTelemetry?"{\"show_telemetry\":true}":"{\"show_telemetry\":false}");
+  });
+  web.on("/settings/telemetry",HTTP_POST,[](){
+    if(!mqttAdmin())return;
+    String body=web.arg("plain");cJSON *j=body.length()<=256?RackMqtt::parse(body.c_str(),body.length()):nullptr;
+    char token[65]{};
+    if(!j||!RackMqtt::textField(j,"token",token,sizeof(token))||formToken!=token){if(j)cJSON_Delete(j);web.send(403,"text/plain","Reload settings page.");return;}
+    const cJSON *v=cJSON_GetObjectItemCaseSensitive(j,"show_telemetry");
+    bool valid=cJSON_IsBool(v),enabled=cJSON_IsTrue(v);cJSON_Delete(j);
+    if(!valid){web.send(400,"text/plain","Expected show_telemetry boolean.");return;}
+    if(RackUpdate::busy||restartPending){web.send(409,"text/plain","Update in progress.");return;}
+    if(!WebSettings::saveTelemetry(enabled)){web.send(503,"text/plain","Could not save settings.");return;}
+    // Turning telemetry back on also exits an explicitly requested media preview.
+    if(enabled){MediaLibrary::manualPreview=false;GifPlayer::stop();RackMqtt::dirty=true;}
+    web.sendHeader("Cache-Control","no-store");web.send(200,"application/json",enabled?"{\"show_telemetry\":true}":"{\"show_telemetry\":false}");
   });
   web.on("/settings/display",HTTP_GET,[](){
     if(!mqttAdmin())return;
@@ -214,6 +270,7 @@ void configureWeb() {
     if(!mqttAdmin())return;
     web.sendHeader("Cache-Control","no-store");
     cJSON *j=cJSON_CreateObject();
+    cJSON_AddBoolToObject(j,"show_telemetry",WebSettings::showTelemetry);
     cJSON_AddNumberToObject(j,"page",mqttFramePage+1);cJSON_AddNumberToObject(j,"pages",mqttPlan.count);
     cJSON_AddBoolToObject(j,"intro",mqttFrame.intro);cJSON_AddStringToObject(j,"area",mqttAreaLabel());
     cJSON_AddNumberToObject(j,"area_page",mqttFrame.number);cJSON_AddNumberToObject(j,"area_pages",mqttFrame.total);
@@ -221,6 +278,26 @@ void configureWeb() {
     cJSON_AddNumberToObject(j,"cards_per_page",3);cJSON_AddNumberToObject(j,"interval_ms",RackPages::duration(mqttFrame));
     web.send(200,"application/json",RackMqtt::printJson(j));
   });
+  web.on("/media",HTTP_GET,[](){
+    if(!mqttAdmin())return;
+    String page=FPSTR(MEDIA_PAGE);page.replace("__TOKEN__",formToken);page.replace("__LANG__",WebSettings::english()?"en":"ru");
+    web.sendHeader("Cache-Control","no-store");web.send(200,"text/html; charset=utf-8",localizeWeb(page));
+  });
+  web.on("/media/gif-test",HTTP_GET,[](){if(!mqttAdmin())return;String page=FPSTR(GIF_PAGE);page.replace("__TOKEN__",formToken);web.sendHeader("Cache-Control","no-store");web.send(200,"text/html; charset=utf-8",localizeWeb(page));});
+  web.on("/media/status",HTTP_GET,[](){if(!mqttAdmin())return;web.sendHeader("Cache-Control","no-store");web.send(200,"application/json",GifPlayer::status());});
+  web.on("/media/play",HTTP_POST,[](){
+    if(!mqttAdmin())return;
+    if(web.arg("token")!=formToken){web.send(403,"text/plain","Reload settings page");return;}
+    if(RackUpdate::busy||RackUpdate::restartRequested||restartPending){web.send(409,"text/plain","Update in progress");return;}
+    const String action=web.arg("action");
+    if(action=="stop"){MediaLibrary::paused=true;MediaLibrary::manualPreview=false;GifPlayer::stop();web.send(200,"application/json",GifPlayer::status());return;}
+    if(action!="test"&&action!="play"){web.send(400,"text/plain","Invalid action");return;}
+    bool ok=action=="test"?(GifPlayer::seed()&&GifPlayer::start("4vrs-test.gif")):GifPlayer::start(web.arg("file"));
+    if(ok){MediaLibrary::paused=false;MediaLibrary::manualPreview=true;WebSettings::storage.putString("media_file",GifPlayer::filename);}
+    web.send(ok?200:400,"application/json",GifPlayer::status());
+  });
+  web.on("/storage",HTTP_GET,[](){if(!mqttAdmin())return;web.sendHeader("Cache-Control","no-store");web.send(200,"text/html; charset=utf-8",localizeWeb(String(FPSTR(STORAGE_PAGE))));});
+  web.on("/storage/status",HTTP_GET,[](){if(!mqttAdmin())return;web.sendHeader("Cache-Control","no-store");web.send(200,"application/json",CardStorage::status());});
   web.on("/display", HTTP_GET, [](){ web.sendHeader("Cache-Control", "no-store"); web.send(200, "application/json", displayStatus()); });
   web.on("/backlight", HTTP_GET, [](){ web.sendHeader("Cache-Control", "no-store"); web.send(200, "application/json", backlightStatus()); });
   web.on("/scan", HTTP_POST, [](){
@@ -273,7 +350,7 @@ void configureWeb() {
   web.on("/health", HTTP_GET, []() {
     const esp_partition_t *running = esp_ota_get_running_partition();
     String body = String("{\"version\":\"") + VERSION + "\",\"hostname\":\"" + hostname +
-      "\",\"ip\":\"" + WiFi.localIP().toString() + "\",\"wifi\":" + (WiFi.status() == WL_CONNECTED ? "true" : "false") +
+      "\",\"mac_address\":\"" + WiFi.macAddress() + "\",\"ip\":\"" + WiFi.localIP().toString() + "\",\"wifi\":" + (WiFi.status() == WL_CONNECTED ? "true" : "false") +
       ",\"ota\":" + (otaActive ? "true" : "false") + ",\"uptime_s\":" + String(millis()/1000) +
       ",\"ap\":"+(radioApEnabled()?"true":"false")+",\"wifi_mode\":"+String(int(WiFi.getMode()))+",\"rssi\":"+String(WiFi.RSSI())+",\"disconnect_reason\":"+String(disconnectReason)+
       ",\"free_heap\":" + String(ESP.getFreeHeap()) + ",\"flash_bytes\":" + String(ESP.getFlashChipSize()) +
@@ -314,6 +391,7 @@ void configureOta() {
 }
 
 void setup() {
+  startBacklight();
   Serial.begin(115200);
   if(!DeviceCredentials::begin()){Serial.println("Credential storage unavailable");delay(10000);ESP.restart();}
   uint64_t mac = ESP.getEfuseMac();
@@ -340,6 +418,7 @@ void setup() {
     if (prefs.getBytes("candidate", &candidate, sizeof(candidate)) == sizeof(candidate)) {
       candidate.ssid[32] = '\0'; candidate.password[63] = '\0';
       ssid = candidate.ssid; password = candidate.password;
+      wifiCandidateActive=true;
       traceBoot("NVS: restored pending network");
     }
   }
@@ -375,7 +454,7 @@ void setup() {
   traceBoot("SETUP COMPLETE");
   outageSince = lastAttempt = millis();
   startDisplayDemo();
-  startBacklightTest();
+  MediaLibrary::nextFile("");skipBootDemo=MediaLibrary::hasUserMedia;
 }
 
 void loop() {
@@ -391,6 +470,7 @@ void loop() {
     delay(1); return;
   }
   web.handleClient();
+  MediaLibrary::tick();
   NetworkSettings::tick();
   finishScan();
   if (savePending) {
@@ -399,7 +479,7 @@ void loop() {
     WiFi.STA.disconnect(false, 1000);
     connectedBefore = false;
     if (otaActive) { ArduinoOTA.end(); otaActive = false; }
-    ssid = pendingSsid; password = pendingPassword;
+    ssid = pendingSsid; password = pendingPassword;wifiCandidateActive=true;
     pendingPassword = ""; pendingSsid = "";
     outageSince = lastAttempt = now;
     Serial.printf("[wifi] begin result=%d\n", int(WiFi.begin(ssid.c_str(), password.c_str())));
@@ -418,6 +498,7 @@ void loop() {
         if (saved) storedConfig = next;
       }
       if (saved && prefs.isKey("candidate")) prefs.remove("candidate");
+      if(saved)wifiCandidateActive=false;
       Serial.printf("Wi-Fi IP: %s | settings %s\n", lastIp.toString().c_str(), saved ? "saved" : "WRITE FAILED");
       if (otaActive) ArduinoOTA.end();
       ArduinoOTA.begin(); otaActive = true;
@@ -439,6 +520,11 @@ void loop() {
       if (otaActive) { ArduinoOTA.end(); otaActive = false; }
       Serial.println("Wi-Fi lost; reconnecting");
     }
+    if(wifiCandidateActive&&storedConfig.ssid[0]&&uint32_t(now-outageSince)>=FALLBACK_MS){
+      // The last successful network remains in config until the candidate gets an IP.
+      if(prefs.remove("candidate")){wifiCandidateActive=false;ESP.restart();return;}
+      startPortal();
+    }
     if (ssid.isEmpty() || uint32_t(now - outageSince) >= FALLBACK_MS) startPortal();
     if (!scanRunning && !ssid.isEmpty() && uint32_t(now - lastAttempt) >= RETRY_MS) {
       lastAttempt = now;
@@ -446,7 +532,31 @@ void loop() {
     }
   }
   RackMqtt::tick();
-  if(!UpdateDisplay::tick())updateMqttDisplay();
+  if(UpdateDisplay::tick()){
+    // Pause during update checks; redraw the GIF canvas when the update screen closes.
+    if(GifPlayer::active){GifPlayer::validShown=false;GifPlayer::painting=true;GifPlayer::row=0;}
+  }
+  else if(!updateBootSplash()){
+    static bool appliedTelemetry=true, modeReady=false;
+    if(!modeReady||appliedTelemetry!=MediaLibrary::telemetryReady()){
+      modeReady=true;appliedTelemetry=MediaLibrary::telemetryReady();
+      displayRow=0;mqttShowing=false;mqttPaintRow=320;RackMqtt::dirty=true;
+      if(appliedTelemetry&&!MediaLibrary::manualPreview)GifPlayer::stop();
+      if(!appliedTelemetry&&!GifPlayer::active&&!MediaLibrary::paused){
+        String selected=WebSettings::storage.getString("media_file","");
+        String candidate=MediaLibrary::nextFile("");
+        if(!selected.length()||(selected=="4vrs-test.gif"&&MediaLibrary::hasUserMedia))selected=candidate;
+        if(selected.length()&&!GifPlayer::start(selected)&&candidate.length()&&candidate!=selected)GifPlayer::start(candidate);
+      }
+    }
+    MediaLibrary::tickPlayback();
+    if(!GifPlayer::tick()){
+      if(MediaLibrary::telemetryReady())updateMqttDisplay();
+      else if(!MediaLibrary::hasUserMedia)updateDisplayDemo();
+      else if(displayRow<320){memset(rowPixels,0,sizeof(rowPixels));display.drawRGBBitmap(0,displayRow++,rowPixels,240,1);if(displayRow==320)backlightFrameReady();}
+    }
+  }
+  updateBacklight();
   RackUpdate::tick(WebSettings::ready&&displayStarted&&RackMqtt::rxQueue,connected);
   delay(2);
 }

@@ -8,8 +8,8 @@ KINDS = {"fan", "light", "valve", "sensor", "binary_sensor", "switch"}
 
 
 def validate_selection(entities):
-    if not isinstance(entities, list) or not 1 <= len(entities) <= MAX_CARDS:
-        raise ValueError("Select between one and twenty entities")
+    if not isinstance(entities, list) or not 0 <= len(entities) <= MAX_CARDS:
+        raise ValueError("Select up to twenty entities")
     if any(not isinstance(e, str) or len(e) > 96 or not re.fullmatch(r"[a-z][a-z0-9_]*\.[a-z0-9_]+", e) for e in entities):
         raise ValueError("Invalid entity id")
     if len(set(entities)) != len(entities):

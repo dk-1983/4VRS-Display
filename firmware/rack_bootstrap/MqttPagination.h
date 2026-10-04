@@ -14,11 +14,14 @@ template<class Snapshot> constexpr bool sameArea(const Snapshot &s,unsigned a,un
 template<unsigned Capacity,class Snapshot> constexpr Plan<Capacity> makePlan(const Snapshot &s,bool roomCovers=true) {
   Plan<Capacity> plan;
   if(s.count>Capacity)return plan;
+  // A single area is already identified in the content header.
+  bool multipleAreas=false;
+  for(unsigned i=1;i<s.count;++i)if(!sameArea(s,0,i)){multipleAreas=true;break;}
   for(unsigned start=0;start<s.count;) {
     unsigned end=start+1;
     while(end<s.count&&sameArea(s,start,end))++end;
     unsigned size=end-start,total=(size+CARDS_PER_PAGE-1)/CARDS_PER_PAGE;
-    if(roomCovers&&s.cards[start].hasArea)plan.pages[plan.count++]={start,0,start,size,0,total,true};
+    if(roomCovers&&multipleAreas&&s.cards[start].hasArea)plan.pages[plan.count++]={start,0,start,size,0,total,true};
     for(unsigned first=start,n=1;first<end;first+=CARDS_PER_PAGE,++n)
       plan.pages[plan.count++]={first,end-first<CARDS_PER_PAGE?end-first:CARDS_PER_PAGE,start,size,n,total,false};
     start=end;

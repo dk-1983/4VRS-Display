@@ -70,7 +70,7 @@ inline const char *decodeSnapshot(const cJSON *root,const char *session,uint32_t
   if(!numberField(root,"ttl_s",next.ttl,30,300))return "ttl";
   const cJSON *cards=cJSON_GetObjectItemCaseSensitive(root,"cards");
   if(!cJSON_IsArray(cards))return "cards";
-  int count=cJSON_GetArraySize(cards);if(count<1||count>MAX_CARDS)return "card_count";
+  int count=cJSON_GetArraySize(cards);if(count<0||count>MAX_CARDS)return "card_count";
   for(int i=0;i<count;i++) {
     const cJSON *v=cJSON_GetArrayItem(cards,i);const char *const ck[]={"id","name","kind","state","unit","icon","alert","area","area_icon"};
     if(!cJSON_IsObject(v)||!allowedKeys(v,ck,9))return "card";
