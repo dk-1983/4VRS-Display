@@ -94,6 +94,8 @@ Without telemetry entities, the display uses selected media or the built-in fall
 
 ## Home Assistant integration
 
+Firmware **1.0.0** bundles Home Assistant integration **0.4.3**. The two components are versioned independently; `fourvrs_display-0.4.3.zip` is the correct integration archive for this release.
+
 1. Configure Home Assistant's MQTT integration.
 2. Download `fourvrs_display-0.4.3.zip` from the release and copy its `custom_components/fourvrs_display` directory into your HA configuration's `custom_components` directory.
 3. Restart Home Assistant and add the **4VRS Display** integration.

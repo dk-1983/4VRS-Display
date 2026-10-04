@@ -94,6 +94,8 @@ Home Assistant → MQTT-брокер → 4VRS Display
 
 ## Интеграция Home Assistant
 
+В релиз прошивки **1.0.0** входит интеграция Home Assistant **0.4.3**. Компоненты имеют независимые версии; `fourvrs_display-0.4.3.zip` — актуальный архив интеграции для этого релиза.
+
 1. Настройте штатную интеграцию MQTT в Home Assistant.
 2. Скачайте `fourvrs_display-0.4.3.zip` из релиза и скопируйте каталог `custom_components/fourvrs_display` в каталог `custom_components` конфигурации HA.
 3. Перезапустите Home Assistant и добавьте интеграцию **4VRS Display**.
