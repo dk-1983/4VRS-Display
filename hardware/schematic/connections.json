@@ -1,5 +1,5 @@
 {
-  "revision": "A1",
+  "revision": "A2",
   "optional_components": [
     "R3",
     "R4",
@@ -79,17 +79,24 @@
       "U1.24",
       "DS1.4"
     ],
-    "TFT_MOSI": [
+    "SPI_MOSI": [
       "U1.37",
-      "DS1.6"
+      "DS1.6",
+      "DS1.SD_MOSI"
     ],
-    "TFT_SCK": [
+    "SPI_SCK": [
       "U1.30",
-      "DS1.7"
+      "DS1.7",
+      "DS1.SD_SCK"
     ],
-    "TFT_MISO": [
+    "SPI_MISO": [
       "U1.31",
-      "DS1.9"
+      "DS1.9",
+      "DS1.SD_MISO"
+    ],
+    "SD_CS": [
+      "U1.10",
+      "DS1.SD_CS"
     ],
     "TFT_BL": [
       "U1.26",
@@ -124,7 +131,6 @@
     6,
     8,
     9,
-    10,
     11,
     12,
     14,

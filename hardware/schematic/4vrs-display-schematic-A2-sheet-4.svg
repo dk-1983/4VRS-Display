@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE svg
+  PUBLIC '-//W3C//DTD SVG 1.0//EN'
+  'http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd'>
+<svg width="1190" height="842" preserveAspectRatio="xMinYMin meet" viewBox="0 0 1190 842" xmlns="http://www.w3.org/2000/svg" version="1.0" fill-rule="evenodd" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<title>...</title>
+	<desc>...</desc>
+	<clipPath id="clip">
+		<rect x="0" y="0" width="1190" height="842"/>
+	</clipPath>
+	<g id="group" transform="scale(1,-1) translate(0,-842)" style="clip-path: url(#clip)">
+		<g transform="">
+			<rect x="0" y="0" width="1190" height="842" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<rect x="18" y="18" width="1154" height="806" style="stroke: rgb(9%,20%,29%); stroke-linecap: butt; stroke-width: 1; fill: none; fill-rule: evenodd;"/>
+			<text x="36" y="795" style="font-family: Helvetica; font-size: 22px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,1590) scale(1,-1)">4VRS DISPLAY</text>
+			<text x="270" y="796" style="font-family: Helvetica; font-size: 16px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,1592) scale(1,-1)">Shared SPI bus and SD memory card</text>
+			<text x="36" y="773" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,1546) scale(1,-1)">Electrical schematic | Rev A2 | 2026-10-05 | ESP32-WROVER + ILI9341 SPI 240x320</text>
+			<path d="M 18,762 L 1172,762 Z" style="stroke: rgb(9%,20%,29%); stroke-linecap: butt; stroke-width: 1;"/>
+			<text x="36" y="27" style="font-family: Helvetica; font-size: 9px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,54) scale(1,-1)">Design proposal based on supplied NADIM V5 / LCDWIKI drawings; additions are identified. Not a PCB layout.</text>
+			<text x="1020" y="27" style="font-family: Helvetica; font-size: 9px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,54) scale(1,-1)">A3 landscape | 4 / 4</text>
+			<rect x="35" y="287" width="1120" height="460" style="stroke: rgb(72%,78%,81%); stroke-linecap: butt; stroke-width: 1; fill: none; fill-rule: evenodd;"/>
+			<text x="47" y="725" style="font-family: Helvetica; font-size: 12px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,1450) scale(1,-1)">10. TFT + SD - common SPI signals, independent active-low chip selects</text>
+			<rect x="65" y="337" width="220" height="350" style="stroke: rgb(64%,16%,21%); stroke-linecap: butt; stroke-width: 1; fill: none; fill-rule: evenodd;"/>
+			<text x="82" y="660" style="font-family: Helvetica; font-size: 13px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,1320) scale(1,-1)">U1  ESP32-WROVER(-I)</text>
+			<text x="82" y="635" style="font-family: Helvetica; font-size: 10px;fill: rgb(32%,40%,46%); stroke:none;" transform="translate(0,1270) scale(1,-1)">GPIO / module pad</text>
+			<rect x="785" y="520" width="335" height="172" style="stroke: rgb(64%,16%,21%); stroke-linecap: butt; stroke-width: 1; fill: none; fill-rule: evenodd;"/>
+			<text x="802" y="664" style="font-family: Helvetica; font-size: 13px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,1328) scale(1,-1)">DS1  ILI9341 - TFT header</text>
+			<rect x="785" y="310" width="335" height="172" style="stroke: rgb(64%,16%,21%); stroke-linecap: butt; stroke-width: 1; fill: none; fill-rule: evenodd;"/>
+			<text x="802" y="454" style="font-family: Helvetica; font-size: 13px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,908) scale(1,-1)">DS1  SD socket - separate header</text>
+			<text x="83" y="608" style="font-family: Helvetica; font-size: 11px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,1216) scale(1,-1)">GPIO23 / pad 37</text>
+			<path d="M 285,612 L 785,612 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<text x="310" y="619" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,45%,31%); stroke:none;" transform="translate(0,1238) scale(1,-1)">SPI_MOSI</text>
+			<circle cx="450" cy="612" r="2.2" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1; fill: rgb(9%,45%,31%); fill-rule: evenodd;"/>
+			<path d="M 450,612 L 450,422 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<path d="M 450,422 L 785,422 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<text x="800" y="608" style="font-family: Helvetica; font-size: 11px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,1216) scale(1,-1)">6  SDI / MOSI</text>
+			<text x="800" y="418" style="font-family: Helvetica; font-size: 11px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,836) scale(1,-1)">SD_MOSI</text>
+			<text x="83" y="580" style="font-family: Helvetica; font-size: 11px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,1160) scale(1,-1)">GPIO18 / pad 30</text>
+			<path d="M 285,584 L 785,584 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<text x="310" y="591" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,45%,31%); stroke:none;" transform="translate(0,1182) scale(1,-1)">SPI_SCK</text>
+			<circle cx="520" cy="584" r="2.2" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1; fill: rgb(9%,45%,31%); fill-rule: evenodd;"/>
+			<path d="M 520,584 L 520,394 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<path d="M 520,394 L 785,394 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<text x="800" y="580" style="font-family: Helvetica; font-size: 11px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,1160) scale(1,-1)">7  SCK</text>
+			<text x="800" y="390" style="font-family: Helvetica; font-size: 11px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,780) scale(1,-1)">SD_SCK / CLK</text>
+			<text x="83" y="552" style="font-family: Helvetica; font-size: 11px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,1104) scale(1,-1)">GPIO19 / pad 31</text>
+			<path d="M 285,556 L 785,556 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<text x="310" y="563" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,45%,31%); stroke:none;" transform="translate(0,1126) scale(1,-1)">SPI_MISO</text>
+			<circle cx="590" cy="556" r="2.2" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1; fill: rgb(9%,45%,31%); fill-rule: evenodd;"/>
+			<path d="M 590,556 L 590,366 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<path d="M 590,366 L 785,366 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<text x="800" y="552" style="font-family: Helvetica; font-size: 11px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,1104) scale(1,-1)">9  SDO / MISO</text>
+			<text x="800" y="362" style="font-family: Helvetica; font-size: 11px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,724) scale(1,-1)">SD_MISO</text>
+			<text x="83" y="496" style="font-family: Helvetica; font-size: 11px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,992) scale(1,-1)">GPIO13 / pad 16</text>
+			<path d="M 285,500 L 700,500 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<path d="M 700,500 L 700,534 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<path d="M 700,534 L 785,534 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<text x="310" y="507" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,45%,31%); stroke:none;" transform="translate(0,1014) scale(1,-1)">TFT_CS (active LOW)</text>
+			<text x="800" y="530" style="font-family: Helvetica; font-size: 11px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,1060) scale(1,-1)">3  CS</text>
+			<text x="83" y="342" style="font-family: Helvetica; font-size: 11px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,684) scale(1,-1)">GPIO25 / pad 10</text>
+			<path d="M 285,346 L 785,346 Z" style="stroke: rgb(9%,45%,31%); stroke-linecap: butt; stroke-width: 1;"/>
+			<text x="310" y="353" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,45%,31%); stroke:none;" transform="translate(0,706) scale(1,-1)">SD_CS (active LOW)</text>
+			<text x="800" y="342" style="font-family: Helvetica; font-size: 11px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,684) scale(1,-1)">SD_CS</text>
+			<text x="80" y="307" style="font-family: Helvetica; font-size: 10px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,614) scale(1,-1)">Other TFT / ESP32 connections: sheet 1. Crossings without dots are not junctions.</text>
+			<rect x="35" y="57" width="1120" height="210" style="stroke: rgb(72%,78%,81%); stroke-linecap: butt; stroke-width: 1; fill: none; fill-rule: evenodd;"/>
+			<text x="47" y="245" style="font-family: Helvetica; font-size: 12px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,490) scale(1,-1)">11. ASSEMBLY - existing SD socket on our LCDWIKI display module</text>
+			<text x="52" y="220" style="font-family: Helvetica; font-size: 11px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,440) scale(1,-1)">Wire all FOUR SD header signals; the module does not internally connect them to the TFT SPI header.</text>
+			<text x="52" y="200" style="font-family: Helvetica; font-size: 11px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,400) scale(1,-1)">SD header contacts are identified by their silkscreen names; no unverified header pin order is implied.</text>
+			<text x="52" y="180" style="font-family: Helvetica; font-size: 11px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,360) scale(1,-1)">TFT_CS = GPIO13. SD_CS = GPIO25 (U1 module pad 10). Do not connect the two CS signals together.</text>
+			<text x="52" y="160" style="font-family: Helvetica; font-size: 11px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,320) scale(1,-1)">SD socket power and ground are internal to DS1; retain the module VCC/GND connection from sheet 1.</text>
+			<text x="52" y="140" style="font-family: Helvetica; font-size: 11px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,280) scale(1,-1)">All logic is 3.3 V. Keep SPI leads short. MISO is required for SD even without TFT readback diagnostics.</text>
+			<text x="52" y="120" style="font-family: Helvetica; font-size: 11px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,240) scale(1,-1)">Firmware 1.0.0 uses a shared SPI bus, MISO pull-up and separate CS handling; SD starts at 1 MHz.</text>
+			<text x="52" y="100" style="font-family: Helvetica; font-size: 11px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,200) scale(1,-1)">Use a FAT32 card; 16 GB microSD with a full-size SD adapter has been tested. No automatic formatting.</text>
+			<text x="52" y="80" style="font-family: Helvetica; font-size: 11px;fill: rgb(9%,20%,29%); stroke:none;" transform="translate(0,160) scale(1,-1)">This sheet shows the existing module socket, not a wiring diagram for an arbitrary bare SD socket.</text>
+		</g>
+	</g>
+</svg>

@@ -14,6 +14,8 @@ Choose the entities in Home Assistant; the integration sends their states throug
 
 [Download the release](https://github.com/dk-1983/4VRS-Display/releases/tag/firmware-v1.0.0) · [Report an issue](https://github.com/dk-1983/4VRS-Display/issues)
 
+[Hardware](#supported-hardware) · [Schematic](#electrical-schematic) · [First setup](#first-setup) · [Home Assistant](#home-assistant-integration) · [Media](#photo-frame-and-animations) · [Updates](#firmware-updates)
+
 ## Features
 
 - **Up to 20 entities per display**, selected and edited in Home Assistant.
@@ -57,9 +59,9 @@ The current firmware targets **ESP32-WROVER with 4 MiB PSRAM**, the **NADIM V5**
 | MOSI / SDA | 23 |
 | SCK | 18 |
 | SDO / MISO, optional diagnostics | 19 |
-| LED logic input (module has a transistor) | 4 |
+| LED / PWM, module pin 8 | 4 |
 
-A touchscreen and microSD card are not required. GPIO signals use 3.3 V logic; follow the display module's power specifications and connect GPIO4 to the module's LED control input, which drives its onboard transistor.
+The display is a factory-built module: our schematic shows its external connections. GPIO4 connects directly to module pin 8 (LED), without an external transistor. GPIO signals use 3.3 V logic; follow the module's power specifications. A touchscreen is not required. An SD card is needed for user photos and GIFs; the built-in artwork is available without one.
 
 ### SD card connection
 
@@ -72,13 +74,32 @@ A touchscreen and microSD card are not required. GPIO signals use 3.3 V logic; f
 
 The SD socket on the display module has a **separate connector**: wire all four signals explicitly; they are not connected to the TFT header internally. TFT and SD share MOSI, MISO and SCK, but use separate CS lines (TFT: GPIO13, SD: GPIO25). The socket receives power through the display module. User media requires a FAT32 card; 16 GB microSD cards in full-size SD adapters have been tested. MISO is required for SD even if TFT diagnostics are not used.
 
+## Electrical schematic
+
+[Open the complete four-sheet A3 PDF](hardware/schematic/4vrs-display-schematic-A2.pdf) · [Assembly notes and editable drawings](hardware/schematic/README.md)
+
+Power, ESP32 and TFT connections are shown below, followed by the shared SPI bus and the separate **SD_CS → GPIO25** connection. The extended supply circuit is optional; the original working L1117-33 circuit remains supported.
+
+![Power, ESP32 and ILI9341 schematic](hardware/schematic/4vrs-display-schematic-A2-sheet-1.svg)
+
+![Shared TFT and SD SPI bus, SD CS on GPIO25](hardware/schematic/4vrs-display-schematic-A2-sheet-4.svg)
+
+<details>
+<summary>Reset, UART, backlight and optional buttons</summary>
+
+![Reset, UART and backlight](hardware/schematic/4vrs-display-schematic-A2-sheet-2.svg)
+
+![Optional buttons and component list](hardware/schematic/4vrs-display-schematic-A2-sheet-3.svg)
+
+</details>
+
 ## Manufacturer documentation
 
 - [LCDWIKI: 2.4-inch SPI ILI9341 module](https://www.lcdwiki.com/2.4inch_SPI_Module_ILI9341_SKU:MSP2402) — module schematic, user manual and mechanical drawings.
 - [Espressif documentation catalogue](https://www.espressif.com/en/support/documents/technical-documents) — select the datasheet matching the exact module marking.
 - [ESP32-WROVER-E / WROVER-IE datasheet](https://documentation.espressif.com/esp32-wrover-e_esp32-wrover-ie_datasheet_en.html) and [ESP32 hardware design guidelines](https://docs.espressif.com/projects/esp-hardware-design-guidelines/en/latest/esp32/schematic-checklist.html).
 - [ESP LINK v1.0 documentation from IOT-MCU](https://github.com/IOT-MCU/ESP-LINK-v1.0) — an example USB-UART adapter, not a required model. Its ESP-01 instructions are not the ESP32 flashing procedure.
-- [Base circuit and optional extended schematic (A1), BOM and assembly notes](hardware/schematic/README.md).
+- [Base circuit and optional extended schematic (A2), BOM and assembly notes](hardware/schematic/README.md).
 
 ## First setup
 
@@ -88,9 +109,16 @@ The SD socket on the display module has a **separate connector**: wire all four 
 4. Open **http://192.168.4.1/**, select your **2.4 GHz Wi-Fi** network and enter its password.
 5. Find the device's assigned IP in your router's DHCP client list and open it in a browser. A DHCP reservation keeps its address consistent. The setup access point turns off after a stable LAN connection.
 6. Sign in with **username `admin`, password `admin`**. Change these in **Settings**, where you can also select the interface language. Web, Wi-Fi and ArduinoOTA credentials are separate.
-7. Open **MQTT** and enter your broker's host without `http://`, port, username and password. Use the same broker as Home Assistant.
+7. **For Home Assistant telemetry:** open **MQTT** and enter your broker's host without `http://`, port, username and password. Use the same broker as Home Assistant.
 
 Without telemetry entities, the display uses selected media or the built-in fallback. MQTT is optional for standalone media use.
+
+## Display and network preferences
+
+- **Settings → Show room covers** turns the room title/icon screens on or off. It defaults to on and survives reboot and OTA. Turning it off keeps the room name in each page header and never mixes rooms.
+- **About → Check display** reads controller registers and explains the result. Connect SDO/MISO to GPIO19 for readback; this checks communication, not the LCD glass or backlight.
+- **IPv4 settings** selects DHCP (default) or a static IP, subnet mask, gateway and two DNS servers. Gateway/DNS may be empty for an isolated LAN; GitHub updates require internet access and DNS. Use an unused address outside the dynamic pool or reserve it in your router. The setup AP subnet 192.168.4.0/24 is reserved.
+- Address changes are tried for three minutes. Open `/network` at the new LAN address and click **Confirm connection** to save. Without confirmation, or after a power cycle before confirmation, the previous settings return. Setup Wi-Fi remains available during the trial; firmware updates are paused until it ends. Configure Wi-Fi first when setting up a new board.
 
 ## Home Assistant integration
 
@@ -106,14 +134,6 @@ To edit the selection later, open **Settings → Devices & services → Integrat
 
 `connected: true` confirms a broker connection. If `has_snapshot: false` remains, check pairing, the selected entities and that HA and the display use the same broker.
 
-## Firmware updates
-
-Use the **application image** `4vrs-display-1.0.0.bin` for OTA; the factory image is for initial UART installation. ArduinoOTA remains available on the local network, with an individual password configurable in **Settings → ArduinoOTA**.
-
-GitHub updates use a signed stable manifest. Before installation, the firmware checks the signature, hardware profile, version, image size and SHA-256 digest. It writes to the inactive application slot and validates the next boot, with rollback support for failed startup.
-
-Automatic updates are enabled by default and can be blocked for an individual display through the web interface or Home Assistant. Either block prevents automatic installation. Once HA manages the update policy, fresh permission from HA is required. A new source commit alone does not trigger installation: an update must be published through the signed stable feed.
-
 ## Photo frame and animations
 
 Open **Settings → Multimedia → Media library**. Upload JPEG, PNG or BMP photos, or GIF animations. Photos are converted in your browser to 240×320 BMP with preserved proportions and black margins. GIFs remain unchanged: **maximum 240×320 and 256 KiB per file**. A FAT32 SD card is required for user media; 16 GB cards have been tested.
@@ -123,6 +143,16 @@ Enable **Slideshow** and select the files to include. Each file has its own dura
 Wire the display module's **separate SD connector**: MOSI→23, MISO→19, CLK→18, CS→25. These pins are not internally connected to the TFT header. The firmware creates media folders and never formats the card. The library lists up to 64 files; photos are stored under `/4vrs/photos/`, GIFs under `/4vrs/animations/`. Existing filenames are not overwritten. The built-in portrait and original demo are fallback assets, not ordinary playlist content when user files exist.
 
 Video/audio playback, media upload from HA, local sensors, and physical-button navigation are not implemented. File timing and slideshow are controlled from the device web interface. Decorative sample animations do not represent live device readings.
+
+## Firmware updates
+
+Use the **application image** `4vrs-display-1.0.0.bin` for OTA; the factory image is for initial UART installation. ArduinoOTA remains available on the local network, with an individual password configurable in **Settings → ArduinoOTA**.
+
+GitHub updates use a signed stable manifest. Before installation, the firmware checks the signature, hardware profile, version, image size and SHA-256 digest. It writes to the inactive application slot and validates the next boot, with rollback support for failed startup.
+
+Automatic updates are enabled by default and can be blocked for an individual display through the web interface or Home Assistant. Either block prevents automatic installation. Once HA manages the update policy, fresh permission from HA is required. A new source commit alone does not trigger installation: an update must be published through the signed stable feed.
+
+- During firmware installation the TFT shows progress, followed by verification/restart. The first upgrade from an older firmware gains this screen only for subsequent updates.
 
 ## Development and documentation
 
@@ -156,11 +186,3 @@ Bug reports and contributions are welcome. Include component versions, hardware 
 ## License
 
 Original project code and documentation are distributed under the [MIT License](LICENSE). Third-party libraries retain their own licenses. Third-party branding in optional sample artwork remains the property of its owners and is not covered by a trademark grant under MIT.
-
-### Display and network preferences
-
-- **Settings → Show room covers** turns the room title/icon screens on or off. It defaults to on and survives reboot and OTA. Turning it off keeps the room name in each page header and never mixes rooms.
-- **About → Check display** reads controller registers and explains the result. Connect SDO/MISO to GPIO19 for readback; this checks communication, not the LCD glass or backlight.
-- **IPv4 settings** selects DHCP (default) or a static IP, subnet mask, gateway and two DNS servers. Gateway/DNS may be empty for an isolated LAN; GitHub updates require internet access and DNS. Use an unused address outside the dynamic pool or reserve it in your router. The setup AP subnet 192.168.4.0/24 is reserved.
-- Address changes are tried for three minutes. Open `/network` at the new LAN address and click **Confirm connection** to save. Without confirmation, or after a power cycle before confirmation, the previous settings return. Setup Wi-Fi remains available during the trial; firmware updates are paused until it ends. Configure Wi-Fi first when setting up a new board.
-- During firmware installation the TFT shows progress, followed by verification/restart. The first upgrade from an older firmware gains this screen only for subsequent updates.

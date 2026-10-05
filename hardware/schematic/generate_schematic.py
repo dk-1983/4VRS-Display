@@ -45,10 +45,10 @@ def page(num,title):
     global d
     d=Drawing(W,H);d.add(Rect(0,0,W,H,fillColor=white,strokeColor=None))
     rect(18,18,W-36,H-36,ink);text(36,47,'4VRS DISPLAY',22);text(270,46,title,16)
-    text(36,69,'Electrical schematic | Rev A1 | 2026-09-14 | ESP32-WROVER + ILI9341 SPI 240x320',10)
+    text(36,69,'Electrical schematic | Rev A2 | 2026-10-05 | ESP32-WROVER + ILI9341 SPI 240x320',10)
     line(18,80,W-18,80,ink)
     text(36,815,'Design proposal based on supplied NADIM V5 / LCDWIKI drawings; additions are identified. Not a PCB layout.',9)
-    text(1020,815,f'A3 landscape | {num} / 3',9)
+    text(1020,815,f'A3 landscape | {num} / 4',9)
     pages.append(d)
 
 page(1,'Power, controller and display')
@@ -76,12 +76,12 @@ rect(330,354,230,336);text(356,375,'U1  ESP32-WROVER(-I)',13)
 left=[('2','3V3','+3V3'),('3','EN','EN'),('25','IO0','BOOT_N'),('4','IO36 / VP','BTN_A'),('5','IO39 / VN','BTN_B'),('7','IO35','BTN_C'),('34','IO3 / RXD0','UART_RX'),('35','IO1 / TXD0','UART_TX')]
 for i,(pin,name,n) in enumerate(left):
     y=410+i*31;line(300,y,330,y);text(309,y-5,pin,8);text(341,y+3,name,10);line(190,y,300,y);text(195,y-5,n,9,wire)
-right=[('16','IO13','TFT_CS'),('13','IO14','TFT_DC'),('24','IO2','TFT_RST'),('37','IO23','TFT_MOSI'),('30','IO18','TFT_SCK'),('31','IO19','TFT_MISO'),('26','IO4','TFT_BL')]
+right=[('16','IO13','TFT_CS'),('13','IO14','TFT_DC'),('24','IO2','TFT_RST'),('37','IO23','SPI_MOSI'),('30','IO18','SPI_SCK'),('31','IO19','SPI_MISO'),('26','IO4','TFT_BL'),('10','IO25','SD_CS')]
 for i,(pin,name,n) in enumerate(right):
     y=410+i*31;line(560,y,690,y);text(568,y-5,pin,8);text(495,y+3,name,10);text(602,y-5,n,9,wire)
 text(372,666,'GND 1, 15, 38, EPAD 39',10);line(445,690,445,705);gnd(445,705)
 text(50,713,'UNUSED / RESERVED U1 pads:',9)
-text(50,730,'6, 8-12, 14, 17-23, 27-29, 32, 33, 36.',9)
+text(50,730,'6, 8, 9, 11, 12, 14, 17-23, 27-29, 32, 33, 36.',9)
 text(50,747,'Leave unconnected in this design.',9)
 text(50,764,'Do not use flash / PSRAM pads as GPIO.',9,sym)
 text(468,731,'GPIO2: no external pull-up; TFT reset is an input.',9)
@@ -90,12 +90,12 @@ text(468,765,'WROVER(-I): attach the appropriate antenna before RF use.',9)
 
 rect(872,360,253,350);text(889,384,'DS1  TFT SPI 240x320 v1.3',12)
 text(889,401,'ILI9341 module, no touch IC',11)
-signals=[('+3V3','1','VCC'),('GND','2','GND'),('TFT_CS','3','CS'),('TFT_RST','4','RESET'),('TFT_DC','5','DC'),('TFT_MOSI','6','SDI / MOSI'),('TFT_SCK','7','SCK'),('TFT_BL','8','LED / PWM input'),('TFT_MISO','9','SDO / MISO')]
+signals=[('+3V3','1','VCC'),('GND','2','GND'),('TFT_CS','3','CS'),('TFT_RST','4','RESET'),('TFT_DC','5','DC'),('SPI_MOSI','6','SDI / MOSI'),('SPI_SCK','7','SCK'),('TFT_BL','8','LED / PWM input'),('SPI_MISO','9','SDO / MISO')]
 for i,(n,pin,name) in enumerate(signals):
     y=425+i*24;line(750,y,872,y);text(755,y-4,n,9,wire);text(851,y-4,pin,8);text(885,y+4,name,10)
 text(887,665,'10-14: NC (touch controller absent)',9)
 text(887,682,'On-module J1: CLOSED for +3V3 VCC',9,sym)
-text(887,699,'microSD header: unconnected in Rev A1',9)
+text(887,699,'SD header: connect separately; see sheet 4',9)
 
 page(2,'Reset, service connector and backlight')
 box(35,95,535,302,'3. RESET / BOOT - added passive parts for defined startup')
@@ -113,21 +113,16 @@ text(615,335,'Power the device through J1; do not join two supply outputs.',10)
 text(615,355,'Signal direction is authoritative: adapter connector labels may vary.',10)
 text(615,375,'UART log: 115200 baud. GPIO1 = ESP TX; GPIO3 = ESP RX.',10)
 
-box(35,415,535,352,'5. OUR MODULE - GPIO4 drives an existing transistor input')
-start=len(d.contents)
-text(55,465,'TFT_BL',10,wire);line(112,462,170,462);text(113,450,'DS1.8',9)
-res(170,462,90,'DS1.R6','1k');line(260,462,303,462)
-line(303,443,303,486,sym,2);line(303,453,330,433,sym);line(303,476,330,499,sym)
-poly([(323,486),(325,497),(315,493)],sym,sym)
-line(330,499,330,516);gnd(330,516);line(330,433,330,420+20)
-line(330,433,365,433);res(365,433,90,'DS1.R5','10R');net(455,433,'LEDK',35)
-text(350,485,'DS1.Q1',10);text(350,502,'S8050',10)
-g=Group(*d.contents[start:]); d.contents[start:]=[];g.translate(0,-60);d.add(g)
-text(55,625,'Equivalent circuit inside the LCDWIKI module (not extra parts).',10)
-text(55,642,'LEDA is supplied by the module +3V3 rail.',10)
-text(55,659,'GPIO4 -> DS1 pin 8 directly; HIGH enables the backlight.',10)
-text(55,676,'Firmware PWM: 5 kHz / 10 bit. No external NPN is fitted here.',10)
-text(55,693,'DS1 pin 8 is a logic input, not the raw LED anode.',10,sym)
+box(35,415,535,352,'5. OUR MODULE - direct GPIO4 to display LED pin')
+rect(55,485,155,105);text(69,511,'U1  ESP32',13)
+text(69,542,'GPIO4 / pad 26',11)
+rect(375,485,175,105);text(389,511,'DS1  ILI9341',13)
+text(389,542,'8  LED / PWM',11)
+line(210,538,375,538);text(249,526,'TFT_BL',11,wire)
+text(55,625,'Actual wiring: GPIO4 connects directly to DS1 pin 8 (LED).',10)
+text(55,645,'No external transistor or series resistor in this connection.',10)
+text(55,665,'Module internal backlight circuitry is not expanded here.',10)
+text(55,685,'Firmware PWM: 5 kHz / 10 bit. HIGH enables backlight.',10)
 text(270,732,'Optional R3: PWM low at reset.',10)
 res(130,734,65,'R3','100k');text(55,737,'TFT_BL',9,wire);line(110,734,130,734);gnd(195,734)
 
@@ -149,7 +144,7 @@ text(615,729,'Not for our DS1 LED input. Do not connect both circuits.',11,sym)
 text(615,749,'R20 limits GPIO/base current; the original drawing omitted it.',10)
 
 page(3,'Assembly notes, options and component list')
-box(35,95,1120,225,'7. OPTIONAL BUTTONS - hardware provision; navigation is not implemented in firmware 0.4.3')
+box(35,95,1120,225,'7. OPTIONAL BUTTONS - hardware provision; navigation is not implemented in firmware 1.0.0')
 for i,(ref,n,pin) in enumerate([('A','BTN_A','GPIO36'),('B','BTN_B','GPIO39'),('C','BTN_C','GPIO35')]):
     x=100+i*355;text(x-15,144,'+3V3',10,wire);res(x,153,65,'R'+str(4+i),'10k',True)
     net(x,218,n,42);dot(x,218);line(x,218,x,257);switch(x,257,'SW'+str(3+i),ref);gnd(x+75,257)
@@ -174,7 +169,7 @@ notes=[
 'For sustained high load, use a qualified 3.3 V buck supply.',
 'DS1 VCC=3.3 V: close its supply jumper J1 (0R bypass).',
 'If changing DS1 VCC to 5 V, open its J1 first.',
-'Touch pins and microSD connector are intentionally not wired.',
+'Touch pins are NC; SD uses SPI + GPIO25 (sheet 4).',
 'GPIO numbers are not ESP32 chip QFN pad numbers.',
 'No ERC/SPICE or new PCB hardware validation has been run.',
 'Confirm supply, startup and current on the assembled hardware.'
@@ -183,15 +178,49 @@ for i,t in enumerate(notes):text(607,383+i*20,t,10)
 text(607,704,'Manufacturer documentation (clickable in PDF):',10)
 for y,t in [(725,'LCDWIKI MSP2402: module schematic and manual'),(742,'Espressif: WROVER module / hardware design guidelines'),(759,'Diodes: AP7361C datasheet; original 1117: see TI datasheet')]:text(607,y,t,9)
 
-pdf=canvas.Canvas(str(OUT/'4vrs-display-schematic-A1.pdf'),pagesize=(W,H))
-pdf.setTitle('4VRS Display - electrical schematic Rev A1')
+page(4,'Shared SPI bus and SD memory card')
+box(35,95,1120,460,'10. TFT + SD - common SPI signals, independent active-low chip selects')
+rect(65,155,220,350);text(82,182,'U1  ESP32-WROVER(-I)',13)
+text(82,207,'GPIO / module pad',10,muted)
+rect(785,150,335,172);text(802,178,'DS1  ILI9341 - TFT header',13)
+rect(785,360,335,172);text(802,388,'DS1  SD socket - separate header',13)
+# Three shared bus nets. Branch dots denote actual electrical junctions.
+for i,(gpio,pad,netname,tft,sd) in enumerate([
+    ('23','37','SPI_MOSI','6  SDI / MOSI','SD_MOSI'),
+    ('18','30','SPI_SCK','7  SCK','SD_SCK / CLK'),
+    ('19','31','SPI_MISO','9  SDO / MISO','SD_MISO')]):
+    y=230+i*28;bx=450+i*70;sy=420+i*28
+    text(83,y+4,'GPIO'+gpio+' / pad '+pad,11)
+    line(285,y,785,y);text(310,y-7,netname,10,wire)
+    dot(bx,y);line(bx,y,bx,sy);line(bx,sy,785,sy)
+    text(800,y+4,tft,11);text(800,sy+4,sd,11)
+# Separate selects never join each other or the shared bus.
+text(83,346,'GPIO13 / pad 16',11);line(285,342,700,342);line(700,342,700,308);line(700,308,785,308)
+text(310,335,'TFT_CS (active LOW)',10,wire);text(800,312,'3  CS',11)
+text(83,500,'GPIO25 / pad 10',11);line(285,496,785,496);text(310,489,'SD_CS (active LOW)',10,wire);text(800,500,'SD_CS',11)
+text(80,535,'Other TFT / ESP32 connections: sheet 1. Crossings without dots are not junctions.',10)
+box(35,575,1120,210,'11. ASSEMBLY - existing SD socket on our LCDWIKI display module')
+notes=[
+'Wire all FOUR SD header signals; the module does not internally connect them to the TFT SPI header.',
+'SD header contacts are identified by their silkscreen names; no unverified header pin order is implied.',
+'TFT_CS = GPIO13. SD_CS = GPIO25 (U1 module pad 10). Do not connect the two CS signals together.',
+'SD socket power and ground are internal to DS1; retain the module VCC/GND connection from sheet 1.',
+'All logic is 3.3 V. Keep SPI leads short. MISO is required for SD even without TFT readback diagnostics.',
+'Firmware 1.0.0 uses a shared SPI bus, MISO pull-up and separate CS handling; SD starts at 1 MHz.',
+'Use a FAT32 card; 16 GB microSD with a full-size SD adapter has been tested. No automatic formatting.',
+'This sheet shows the existing module socket, not a wiring diagram for an arbitrary bare SD socket.'
+]
+for i,t in enumerate(notes):text(52,622+i*20,t,11)
+
+pdf=canvas.Canvas(str(OUT/'4vrs-display-schematic-A2.pdf'),pagesize=(W,H))
+pdf.setTitle('4VRS Display - electrical schematic Rev A2')
 for i,p in enumerate(pages,1):
     renderPDF.draw(p,pdf,0,0)
     if i==3:
         for y,url in [(725,'https://www.lcdwiki.com/2.4inch_SPI_Module_ILI9341_SKU:MSP2402'),(742,'https://docs.espressif.com/projects/esp-hardware-design-guidelines/en/latest/esp32/schematic-checklist.html'),(759,'https://www.diodes.com/datasheet/download/AP7361C.pdf')]:
             pdf.linkURL(url,(603,H-y-3,1145,H-y+12),relative=0)
     pdf.showPage()
-    renderSVG.drawToFile(p,str(OUT/f'4vrs-display-schematic-A1-sheet-{i}.svg'))
+    renderSVG.drawToFile(p,str(OUT/f'4vrs-display-schematic-A2-sheet-{i}.svg'))
 pdf.save()
 
 nets={
@@ -200,7 +229,8 @@ nets={
 'GND':['J1.1','J2.1','U2.1','U1.1','U1.15','U1.38','U1.39','DS1.2','C1.2','C2.2','C3.2','C4.2','C5.-','C6.2','SW1.2','SW2.2','R3.2','SW3.2','SW4.2','SW5.2'],
 'BOOT_N':['U1.25','R1.2','SW1.1'], 'EN':['U1.3','R2.2','C6.1','SW2.1'],
 'TFT_CS':['U1.16','DS1.3'], 'TFT_DC':['U1.13','DS1.5'], 'TFT_RST':['U1.24','DS1.4'],
-'TFT_MOSI':['U1.37','DS1.6'], 'TFT_SCK':['U1.30','DS1.7'], 'TFT_MISO':['U1.31','DS1.9'],
+'SPI_MOSI':['U1.37','DS1.6','DS1.SD_MOSI'], 'SPI_SCK':['U1.30','DS1.7','DS1.SD_SCK'], 'SPI_MISO':['U1.31','DS1.9','DS1.SD_MISO'],
+'SD_CS':['U1.10','DS1.SD_CS'],
 'TFT_BL':['U1.26','DS1.8','R3.1'], 'UART_TX':['U1.35','J2.3'], 'UART_RX':['U1.34','J2.2'],
 'BTN_A':['U1.4','R4.2','SW3.1'], 'BTN_B':['U1.5','R5.2','SW4.1'], 'BTN_C':['U1.7','R6.2','SW5.1']}
 seen={}
@@ -208,11 +238,11 @@ for n,parts in nets.items():
     for p in parts:
         assert p not in seen,(p,n,seen.get(p));seen[p]=n
 used={int(p.split('.')[1]) for p in seen if p.startswith('U1.')}
-nc=set([6,*range(8,13),14,*range(17,24),27,28,29,32,33,36])
+nc=set([6,8,9,11,12,14,*range(17,24),27,28,29,32,33,36])
 assert used.isdisjoint(nc)
 assert used|nc==set(range(1,40))
-(OUT/'connections.json').write_text(json.dumps({'revision':'A1','optional_components':['R3','R4','R5','R6','SW3','SW4','SW5'],'nets':nets,'U1_unconnected_pads':sorted(nc),'DS1_unconnected_pins':[10,11,12,13,14]},indent=2)+'\n')
+(OUT/'connections.json').write_text(json.dumps({'revision':'A2','optional_components':['R3','R4','R5','R6','SW3','SW4','SW5'],'nets':nets,'U1_unconnected_pads':sorted(nc),'DS1_unconnected_pins':[10,11,12,13,14]},indent=2)+'\n')
 with (OUT/'bom.csv').open('w',newline='',encoding='utf-8-sig') as f:
     w=csv.writer(f);w.writerow(['Reference','Specification']);w.writerows(rows)
-print('Created 3-page PDF, 3 SVG sheets, BOM and connectivity list.')
+print('Created 4-page PDF, 4 SVG sheets, BOM and connectivity list.')
 print('Connectivity check: every U1 module pad accounted for; no pin assigned to two nets.')

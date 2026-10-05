@@ -1,39 +1,40 @@
 **English** | [Русский](README.ru.md)
 
-# 4VRS Display electrical schematic - Rev A1
+# 4VRS Display electrical schematic - Rev A2
 
 ## Base and extended variants
 
 **Base variant:** the author's original circuit, used in the assembled, working devices. It retains the original L1117-33 supply and component population, with our ILI9341 connections and direct GPIO4-to-LED control input.
 
-**Extended variant (A1):** the PDF, SVG, BOM and connectivity list below describe an optional alternative with AP7361C and additional supply/startup components. The author reviewed this schematic and accepted its circuit design. It is not the component list of the existing boards or a required upgrade.
+**Extended variant (A2):** the PDF, SVG, BOM and connectivity list below describe an optional alternative with AP7361C and additional supply/startup components. The author reviewed the original A1 circuit design. A2 adds SD bus wiring; the power and backlight circuits are unchanged. It is not the component list of the existing boards or a required upgrade.
 
-The base circuit remains the project's reference implementation. The added complexity of A1 is optional; no comparative stability measurements have established its benefit for this installation. Working boards do not need to be rebuilt to match A1. Three buttons remain provisions for future firmware.
+The base circuit remains the project's reference implementation. The added complexity of A2 is optional; no comparative stability measurements have established its benefit for this installation. Working boards do not need to be rebuilt to match A2. Three buttons remain provisions for future firmware.
 
-[Download the three-sheet A3 PDF](4vrs-display-schematic-A1.pdf)
+[Download the four-sheet A3 PDF](4vrs-display-schematic-A2.pdf)
 
-![Power, ESP32 and ILI9341](4vrs-display-schematic-A1-sheet-1.svg)
+![Power, ESP32 and ILI9341](4vrs-display-schematic-A2-sheet-1.svg)
 
 ## Contents
 
-- [Sheet 1: power, controller and display](4vrs-display-schematic-A1-sheet-1.svg)
-- [Sheet 2: reset, UART and backlight](4vrs-display-schematic-A1-sheet-2.svg)
-- [Sheet 3: optional buttons, BOM and assembly notes](4vrs-display-schematic-A1-sheet-3.svg)
+- [Sheet 1: power, controller and display](4vrs-display-schematic-A2-sheet-1.svg)
+- [Sheet 2: reset, UART and backlight](4vrs-display-schematic-A2-sheet-2.svg)
+- [Sheet 3: optional buttons, BOM and assembly notes](4vrs-display-schematic-A2-sheet-3.svg)
+- [Sheet 4: shared TFT/SD SPI bus and GPIO25 chip select](4vrs-display-schematic-A2-sheet-4.svg)
 - [Component list](bom.csv), [connectivity list](connections.json), [drawing source](generate_schematic.py).
 
 This is a circuit design based on the supplied NADIM V5 fragments and LCDWIKI module documentation. The confirmed display wiring is retained. The power-supply changes and additional passive components are recommendations for this revision, not a claim that they are already fitted on existing boards. SVG files are editable vector drawings, not KiCad netlists or PCB layouts.
 
 ## Main display connection
 
-CS=GPIO13, DC=GPIO14, RESET=GPIO2, MOSI=GPIO23, SCK=GPIO18, MISO=GPIO19, LED=GPIO4. These assignments match firmware 0.4.3. All grounds are common. Use the physical module pin numbers shown, not ESP32 chip pad numbers.
+CS=GPIO13, DC=GPIO14, RESET=GPIO2, MOSI=GPIO23, SCK=GPIO18, MISO=GPIO19, LED=GPIO4. These assignments match firmware 1.0.0. All grounds are common. Use the physical module pin numbers shown, not ESP32 chip pad numbers.
 
-The supplied LCDWIKI circuit shows an S8050 backlight transistor and 1 kohm base resistor already on the display module. GPIO4 therefore connects directly to its LED control input. The external NPN example is only for another display exposing LEDA/LEDK; it is not installed alongside the main circuit. Its resistor calculation is an example for a specified single LED string, not a universal backlight value.
+Sheet 2, section 5 shows the actual external connection: GPIO4 directly to DS1 pin 8 (LED), without an external transistor or series resistor. The internal backlight circuitry of the display module is not expanded. The external NPN example is only for another display exposing LEDA/LEDK; it is not installed alongside the main circuit. Its resistor calculation is an example for a specified single LED string, not a universal backlight value.
 
-This drawing supplies the display with 3.3 V and closes the module's J1 bypass. For a module powered at 5 V, J1 must instead be open. Verify the actual module revision before changing its jumper. Touch pins and the microSD connector are intentionally unconnected; media/SD wiring is outside this revision.
+This drawing supplies the display with 3.3 V and closes the module's J1 bypass. For a module powered at 5 V, J1 must instead be open. Verify the actual module revision before changing its jumper. Touch pins remain unconnected. The separate SD header is wired as shown on sheet 4: MOSI=GPIO23, MISO=GPIO19, SCK=GPIO18, CS=GPIO25 (module pad 10). TFT CS remains GPIO13. SD power and ground are supplied internally by the display module; identify the four header contacts by their printed signal names.
 
 ## Power and startup
 
-Rev A1 proposes AP7361C-33ER-13 in **SOT223R**, with 1=GND, 2/tab=OUT, 3=IN. The standard SOT223 AP7361C has a different pinout. This choice replaces the original unspecified L1117-33 and reduces the dropout concern after the series diode. It is not an instruction to replace a working board's regulator without checking its package and layout.
+Rev A2 proposes AP7361C-33ER-13 in **SOT223R**, with 1=GND, 2/tab=OUT, 3=IN. The standard SOT223 AP7361C has a different pinout. This choice replaces the original unspecified L1117-33 and reduces the dropout concern after the series diode. It is not an instruction to replace a working board's regulator without checking its package and layout.
 
 If retaining an LM1117, check its manufacturer's output-capacitor/ESR requirements and dropout at the actual load. The 100 nF input capacitor alone in the source fragment does not provide the bulk decoupling shown in this revision.
 
@@ -57,7 +58,7 @@ Power the board at J1 and connect the adapter's ground and two UART signals. Do 
 
 ## Validation status
 
-Checked against firmware pin assignments and the cited schematics; the connectivity list accounts for all 39 module pads and rejects duplicate pin assignments. All three PDF pages were rendered and visually inspected. No KiCad ERC, SPICE simulation, PCB layout verification or hardware validation of the proposed new power circuit has been performed. Assembly validation must include polarity, 3.3 V stability, boot mode, regulator temperature and backlight current.
+Checked against firmware pin assignments and the cited schematics; the connectivity list accounts for all 39 module pads and rejects duplicate pin assignments. All four PDF pages were rendered and visually inspected. No KiCad ERC, SPICE simulation, PCB layout verification or hardware validation of the proposed new power circuit has been performed. Assembly validation must include polarity, 3.3 V stability, boot mode, regulator temperature and backlight current.
 
 Regenerate using Python with ReportLab: `python generate_schematic.py`. Outputs are written alongside the source. Original manufacturer PDFs are linked rather than redistributed.
 
